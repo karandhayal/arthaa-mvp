@@ -52,7 +52,7 @@ export default function BacktestPage() {
         const errorMessage = errorData?.['Error Message'] || 'Failed to fetch historical data.';
         throw new Error(errorMessage);
       }
-      
+
       const historicalData: Candle[] = await response.json();
       if (!historicalData || historicalData.length === 0) {
         throw new Error('No data returned for this stock in the selected date range. Check the ticker symbol and dates.');
@@ -62,8 +62,12 @@ export default function BacktestPage() {
       const result = runBacktest(enrichedData, config.strategy.config, config.portfolio);
 
       setBacktestResult(result);
-    } catch (error: any) {
-      alert(`An error occurred: ${error.message}`);
+    } catch (error: unknown) { // <-- THIS IS THE FIX (changed from any to unknown)
+        if (error instanceof Error) {
+            alert(`An error occurred: ${error.message}`);
+        } else {
+            alert('An unknown error occurred.');
+        }
     } finally {
       setLoading(false);
     }
@@ -84,5 +88,3 @@ export default function BacktestPage() {
         </section>
       </main>
     </div>
-  );
-}
