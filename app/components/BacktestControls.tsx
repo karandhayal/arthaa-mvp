@@ -5,9 +5,19 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
 import { type StrategyFromDB } from './SavedStrategies';
 
+// Define a specific type for the backtest configuration
+interface BacktestConfig {
+  strategy: StrategyFromDB;
+  portfolio: number;
+  timeframe: string;
+  stock: string;
+  startDate: string;
+  endDate: string;
+}
+
 type BacktestControlsProps = {
   session: Session | null;
-  onRunBacktest: (config: any) => void;
+  onRunBacktest: (config: BacktestConfig) => void;
 };
 
 export default function BacktestControls({ session, onRunBacktest }: BacktestControlsProps) {
@@ -16,18 +26,15 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
   const [portfolio, setPortfolio] = useState(10000);
   const [timeframe, setTimeframe] = useState('1day');
   const [stock, setStock] = useState('AAPL');
-  
-  // --- NEW: State for date range ---
   const [startDate, setStartDate] = useState('2023-01-01');
   const [endDate, setEndDate] = useState('2023-12-31');
-  
   const supabase = createClientComponentClient();
 
   useEffect(() => {
     if (session) {
       const fetchStrategies = async () => {
         const { data } = await supabase.from('strategies').select('*').eq('user_id', session.user.id);
-        if (data) setStrategies(data);
+        if (data) setStrategies(data as StrategyFromDB[]);
       };
       fetchStrategies();
     }
@@ -38,7 +45,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
       alert('Please select a strategy to run.');
       return;
     }
-    // --- NEW: Pass dates to the handler ---
     onRunBacktest({
       strategy: selectedStrategy,
       portfolio,
@@ -51,7 +57,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
 
   return (
     <div className="flex flex-col gap-6 h-full">
-      {/* Parameter Inputs */}
       <div>
         <label className="block text-sm font-medium mb-1">Stock Ticker</label>
         <input type="text" value={stock} onChange={(e) => setStock(e.target.value.toUpperCase())} className="w-full bg-slate-700 p-2 rounded-md" placeholder="e.g., AAPL"/>
@@ -68,8 +73,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
           <option value="1hour">1 Hour</option>
         </select>
       </div>
-
-      {/* --- NEW: Date Range Inputs --- */}
       <div className="flex gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Start Date</label>
@@ -80,8 +83,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-slate-700 p-2 rounded-md"/>
         </div>
       </div>
-
-      {/* Saved Strategies List */}
       <div className="flex-grow flex flex-col">
         <h3 className="font-semibold mb-2">Load a Strategy</h3>
         <div className="bg-slate-900 p-3 rounded-lg overflow-y-auto flex-grow">
@@ -100,7 +101,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
           )}
         </div>
       </div>
-
       <button onClick={handleRun} className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 font-bold rounded-lg shadow-lg hover:opacity-90 transition-opacity">
         Run Backtest
       </button>

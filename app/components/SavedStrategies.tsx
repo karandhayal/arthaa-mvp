@@ -1,15 +1,17 @@
 'use client';
 
-// Define the shape of a strategy object fetched from Supabase
+// Define a more specific type for the strategy configuration
+interface StrategyConfig {
+  entryConditions: object[]; // Using object as a placeholder for the rule structure
+  exitConditions: object[];
+  stopLoss: number;
+  targetProfit: number;
+}
+
 export type StrategyFromDB = {
   id: string;
   name: string;
-  config: {
-    entryConditions: any[];
-    exitConditions: any[];
-    stopLoss: number;
-    targetProfit: number;
-  };
+  config: StrategyConfig;
   created_at: string;
 };
 
