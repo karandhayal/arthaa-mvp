@@ -1,13 +1,23 @@
 'use client';
 
-// Define a more specific type for the strategy configuration
+// Define the specific shape of a single trading rule
+interface TradingRule {
+  indicator: string;
+  condition: string;
+  value: string;
+  logic?: 'AND' | 'OR';
+  id: number;
+}
+
+// Define the shape of the strategy's configuration
 interface StrategyConfig {
-  entryConditions: object[]; // Using object as a placeholder for the rule structure
-  exitConditions: object[];
+  entryConditions: TradingRule[];
+  exitConditions: TradingRule[];
   stopLoss: number;
   targetProfit: number;
 }
 
+// This is the final, specific type for a strategy fetched from the DB
 export type StrategyFromDB = {
   id: string;
   name: string;
