@@ -62,7 +62,7 @@ export default function BacktestPage() {
       const result = runBacktest(enrichedData, config.strategy.config, config.portfolio);
 
       setBacktestResult(result);
-    } catch (error: unknown) { // <-- THIS IS THE FIX (changed from any to unknown)
+    } catch (error: unknown) {
         if (error instanceof Error) {
             alert(`An error occurred: ${error.message}`);
         } else {
@@ -88,3 +88,5 @@ export default function BacktestPage() {
         </section>
       </main>
     </div>
+  );
+} 
