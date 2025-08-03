@@ -11,7 +11,6 @@ import SummaryPanel from '../components/SummaryPannel';
 import SavedStrategies, { type StrategyFromDB } from '../components/SavedStrategies';
 import { type RuleGroup } from '../components/types';
 
-// Define the shape of the strategy state
 type Strategy = {
   strategyName: string;
   entryLogic: RuleGroup;
@@ -21,7 +20,6 @@ type Strategy = {
   trailingStopLoss: number;
 };
 
-// Define the initial state for a new, empty rule group
 const initialRuleGroup: RuleGroup = {
   id: Date.now(),
   logic: 'AND',
@@ -64,7 +62,7 @@ export default function BuilderPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       getSessionAndStrategies(session);
     });
-  }, [supabase, supabase.auth]);
+  }, [supabase]);
 
   const handleUpdateField = (field: keyof Omit<Strategy, 'entryLogic' | 'exitLogic'>, value: string | number) => {
     setStrategy((prev) => ({ ...prev, [field]: value }));
@@ -92,26 +90,23 @@ export default function BuilderPage() {
     const strategyConfig = { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss };
 
     const payload = {
-        name: strategyName,
-        config: strategyConfig,
-        user_id: session.user.id,
+      name: strategyName,
+      config: strategyConfig,
+      user_id: session.user.id,
     };
 
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // We explicitly type the data returned from the .single() method.
-    // This removes the 'any' type ambiguity and satisfies the Vercel linter,
-    // resolving the build error permanently.
     const { data, error } = await supabase
       .from('strategies')
       .insert(payload)
       .select()
-      .single<StrategyFromDB>(); // Specify the return type here
+      .single();
+
+    const newStrategy = data as StrategyFromDB;
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
-    } else if (data) {
-      // No need to cast 'data' here anymore, as it's already correctly typed.
-      setSavedStrategies([data, ...savedStrategies]);
+    } else if (newStrategy) {
+      setSavedStrategies([newStrategy, ...savedStrategies]);
       alert('Strategy saved successfully!');
     }
   };
