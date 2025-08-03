@@ -92,8 +92,8 @@ export default function BuilderPage() {
     const strategyConfig = { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss };
 
     // --- THIS IS THE FIX ---
-    // The 'as any' cast has been removed to satisfy the linter.
-    // The object structure is directly compatible with Supabase's JSONB type.
+    // The 'as any' cast has been removed. The Supabase client is smart
+    // enough to handle a correctly typed object for a JSONB column.
     const { data, error } = await supabase
       .from('strategies')
       .insert({
