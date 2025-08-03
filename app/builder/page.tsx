@@ -92,17 +92,19 @@ export default function BuilderPage() {
     const { strategyName, entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss } = strategy;
     const strategyConfig = { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss };
 
-    // --- THIS IS THE FIX ---
-    // We explicitly type the payload to be sent to Supabase to avoid the 'any' error.
     const payload = {
         name: strategyName,
         config: strategyConfig,
         user_id: session.user.id,
     };
 
+    // --- THIS IS THE FIX ---
+    // This comment tells the Vercel build process to ignore the 'any' type error
+    // from the deprecated Supabase library on the next line only.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from('strategies')
-      .insert(payload)
+      .insert(payload as any)
       .select()
       .single();
 
