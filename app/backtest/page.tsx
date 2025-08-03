@@ -4,21 +4,11 @@ import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
 import Header from '../components/Header';
-import BacktestControls from '../components/BacktestControls';
+import BacktestControls, { type BacktestConfig } from '../components/BacktestControls'; // Import the new type
 import BacktestResults, { type BacktestResult } from '../components/BacktestResults';
 import { calculateIndicators, type Candle } from '../../lib/indicators';
 import { runBacktest } from '../../lib/backtestEngine';
-import { type StrategyFromDB } from '../components/SavedStrategies';
 import LoginModal from '../components/LoginModal';
-
-interface BacktestConfig {
-  strategy: StrategyFromDB;
-  portfolio: number;
-  timeframe: string;
-  stock: string;
-  startDate: string;
-  endDate: string;
-}
 
 export default function BacktestPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,6 +27,8 @@ export default function BacktestPage() {
     getSession();
   }, [supabase.auth]);
 
+  // --- THIS IS THE FIX ---
+  // Use the specific BacktestConfig type for the 'config' parameter.
   const handleRunBacktest = async (config: BacktestConfig) => {
     setLoading(true);
     setBacktestResult(null);
@@ -44,13 +36,11 @@ export default function BacktestPage() {
     const { stock, timeframe, startDate, endDate } = config;
 
     if (stock.toUpperCase().endsWith('.NS')) {
-        alert(`Invalid ticker format for the current data provider. Please use the Bombay Stock Exchange (BSE) suffix, for example: ${stock.toUpperCase().replace('.NS', '.BSE')}`);
+        alert(`Invalid ticker format. Please use the BSE suffix, e.g., ${stock.toUpperCase().replace('.NS', '.BSE')}`);
         setLoading(false);
         return;
     }
 
-    // --- THIS IS THE FIX ---
-    // The logic is updated to handle valid timeframes and prevent invalid API calls.
     let avFunction = '';
     let avInterval = '';
 
@@ -59,9 +49,8 @@ export default function BacktestPage() {
     } else if (timeframe === '1hour') {
         avFunction = 'TIME_SERIES_INTRADAY';
         avInterval = '60min';
-    } else if (timeframe === '4hour') {
-        // Alert the user that this timeframe is not supported and stop execution.
-        alert('The 4-hour timeframe is not supported by the current free data provider. Please select Daily or 1 Hour.');
+    } else {
+        alert(`Unsupported timeframe: ${timeframe}`);
         setLoading(false);
         return;
     }
@@ -73,17 +62,17 @@ export default function BacktestPage() {
 
     try {
       const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch historical data from Alpha Vantage.');
-      }
+      if (!response.ok) throw new Error('Failed to fetch historical data from Alpha Vantage.');
       
       const rawData = await response.json();
       const dataKey = Object.keys(rawData).find(key => key.includes('Time Series'));
       if (!dataKey || !rawData[dataKey]) {
-        throw new Error(rawData['Note'] || rawData['Error Message'] || 'No data returned. The free Alpha Vantage API has a limit of 25 requests per day or the ticker symbol is invalid.');
+        throw new Error(rawData['Note'] || rawData['Error Message'] || 'No data returned. Check API limits or ticker symbol.');
       }
 
       const historicalData: Candle[] = Object.entries(rawData[dataKey])
+        // The 'any' type is acceptable here as it comes from an external, untyped API response.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map(([date, values]: [string, any]) => ({
             date: date,
             open: parseFloat(values['1. open']),
@@ -102,7 +91,7 @@ export default function BacktestPage() {
       const result = runBacktest(enrichedData, config.strategy.config, config.portfolio);
 
       setBacktestResult(result);
-    } catch (error: unknown) { // More robust error handling
+    } catch (error: unknown) {
       if (error instanceof Error) {
         alert(`An error occurred: ${error.message}`);
       } else {

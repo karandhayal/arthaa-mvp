@@ -5,7 +5,9 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
 import { type StrategyFromDB } from './SavedStrategies'; 
 
-interface BacktestConfig {
+// --- THIS IS THE FIX ---
+// Define a specific type for the backtest configuration that can be exported and shared.
+export interface BacktestConfig {
   strategy: StrategyFromDB;
   portfolio: number;
   timeframe: string;
@@ -16,20 +18,17 @@ interface BacktestConfig {
 
 type BacktestControlsProps = {
   session: Session | null;
-  onRunBacktest: (config: BacktestConfig) => void;
+  onRunBacktest: (config: BacktestConfig) => void; // Use the specific type for the prop.
 };
 
 export default function BacktestControls({ session, onRunBacktest }: BacktestControlsProps) {
   const [strategies, setStrategies] = useState<StrategyFromDB[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyFromDB | null>(null);
-  const [portfolio, setPortfolio] = useState(100000); // Updated to a more common portfolio size in INR
+  const [portfolio, setPortfolio] = useState(100000);
   const [timeframe, setTimeframe] = useState('1day');
-  // --- THIS IS THE CHANGE ---
-  const [stock, setStock] = useState('RELIANCE.NS'); // Default to a popular Indian stock
-  
+  const [stock, setStock] = useState('RELIANCE.BSE');
   const [startDate, setStartDate] = useState('2023-01-01');
   const [endDate, setEndDate] = useState('2023-12-31');
-  
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -60,14 +59,13 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
   return (
     <div className="flex flex-col gap-6 h-full">
       <div>
-        <label className="block text-sm font-medium mb-1">Stock Ticker (NSE)</label>
+        <label className="block text-sm font-medium mb-1">Stock Ticker (BSE)</label>
         <input 
             type="text" 
             value={stock} 
             onChange={(e) => setStock(e.target.value.toUpperCase())} 
             className="w-full bg-slate-700 p-2 rounded-md" 
-            // --- THIS IS THE CHANGE ---
-            placeholder="e.g., RELIANCE.NS"
+            placeholder="e.g., RELIANCE.BSE"
         />
       </div>
       <div>
@@ -78,7 +76,6 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
         <label className="block text-sm font-medium mb-1">Timeframe</label>
         <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)} className="w-full bg-slate-700 p-2 rounded-md">
           <option value="1day">Daily</option>
-          <option value="4hour">4 Hour</option>
           <option value="1hour">1 Hour</option>
         </select>
       </div>
