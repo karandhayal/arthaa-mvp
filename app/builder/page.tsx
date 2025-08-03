@@ -56,7 +56,8 @@ export default function BuilderPage() {
         if (error) {
           console.error('Error fetching strategies:', error);
         } else if (data) {
-          setSavedStrategies(data);
+          // Add a type assertion to ensure type safety
+          setSavedStrategies(data as StrategyFromDB[]);
         }
       }
     };
@@ -92,22 +93,24 @@ export default function BuilderPage() {
     const strategyConfig = { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss };
 
     // --- THIS IS THE FIX ---
-    // The 'as any' cast has been removed. The Supabase client is smart
-    // enough to handle a correctly typed object for a JSONB column.
-    const { data, error } = await supabase
-      .from('strategies')
-      .insert({
+    // We explicitly type the payload to be sent to Supabase to avoid the 'any' error.
+    const payload = {
         name: strategyName,
         config: strategyConfig,
         user_id: session.user.id,
-      })
+    };
+
+    const { data, error } = await supabase
+      .from('strategies')
+      .insert(payload)
       .select()
       .single();
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
-    } else {
-      setSavedStrategies([data, ...savedStrategies]);
+    } else if (data) {
+      // Also assert the type of the returned data
+      setSavedStrategies([data as StrategyFromDB, ...savedStrategies]);
       alert('Strategy saved successfully!');
     }
   };
