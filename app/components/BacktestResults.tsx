@@ -7,7 +7,7 @@ interface Trade {
   date: string;
   size: number;
   reason?: string;
-  pnl?: number; // Profit/Loss in dollars
+  pnl?: number; // Profit/Loss in currency
   pnl_percent?: number; // Profit/Loss in percentage
 }
 
@@ -47,7 +47,7 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-slate-700 p-4 rounded-lg">
           <p className="text-sm text-slate-300">Final Portfolio</p>
-          <p className="text-2xl font-bold">${result.finalPortfolio.toFixed(2)}</p>
+          <p className="text-2xl font-bold">₹{result.finalPortfolio.toFixed(2)}</p>
         </div>
         <div className="bg-slate-700 p-4 rounded-lg">
           <p className="text-sm text-slate-300">Net Performance</p>
@@ -71,8 +71,6 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
 
       {/* Trade Log */}
       <h3 className="text-lg font-semibold mb-2">Trade Log</h3>
-      {/* --- THIS IS THE FIX --- */}
-      {/* This div makes the table scrollable horizontally on small screens */}
       <div className="flex-grow overflow-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-900 sticky top-0">
@@ -97,12 +95,12 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
                 <td className={`p-2 font-bold align-top ${
                     trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
                 }`}>{trade.type.toUpperCase()}</td>
-                <td className="p-2 align-top">${trade.price.toFixed(2)}</td>
+                <td className="p-2 align-top">₹{trade.price.toFixed(2)}</td>
                 <td className="p-2 align-top">{trade.size}</td>
                 <td className="p-2 text-right font-mono align-top">
                   {trade.type === 'sell' && typeof trade.pnl === 'number' && (
                     <span className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
-                      {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                      {trade.pnl >= 0 ? '+' : ''}₹{trade.pnl.toFixed(2)}
                       <span className="block text-xs text-slate-500">({trade.pnl_percent?.toFixed(2)}%)</span>
                     </span>
                   )}

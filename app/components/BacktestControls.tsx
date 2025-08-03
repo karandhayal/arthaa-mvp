@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
-import { type StrategyFromDB } from './SavedStrategies';
+import { type StrategyFromDB } from './SavedStrategies'; 
 
-// Define a specific type for the backtest configuration
 interface BacktestConfig {
   strategy: StrategyFromDB;
   portfolio: number;
@@ -23,11 +22,14 @@ type BacktestControlsProps = {
 export default function BacktestControls({ session, onRunBacktest }: BacktestControlsProps) {
   const [strategies, setStrategies] = useState<StrategyFromDB[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyFromDB | null>(null);
-  const [portfolio, setPortfolio] = useState(10000);
+  const [portfolio, setPortfolio] = useState(100000); // Updated to a more common portfolio size in INR
   const [timeframe, setTimeframe] = useState('1day');
-  const [stock, setStock] = useState('AAPL');
+  // --- THIS IS THE CHANGE ---
+  const [stock, setStock] = useState('RELIANCE.NS'); // Default to a popular Indian stock
+  
   const [startDate, setStartDate] = useState('2023-01-01');
   const [endDate, setEndDate] = useState('2023-12-31');
+  
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -58,11 +60,18 @@ export default function BacktestControls({ session, onRunBacktest }: BacktestCon
   return (
     <div className="flex flex-col gap-6 h-full">
       <div>
-        <label className="block text-sm font-medium mb-1">Stock Ticker</label>
-        <input type="text" value={stock} onChange={(e) => setStock(e.target.value.toUpperCase())} className="w-full bg-slate-700 p-2 rounded-md" placeholder="e.g., AAPL"/>
+        <label className="block text-sm font-medium mb-1">Stock Ticker (NSE)</label>
+        <input 
+            type="text" 
+            value={stock} 
+            onChange={(e) => setStock(e.target.value.toUpperCase())} 
+            className="w-full bg-slate-700 p-2 rounded-md" 
+            // --- THIS IS THE CHANGE ---
+            placeholder="e.g., RELIANCE.NS"
+        />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Initial Portfolio ($)</label>
+        <label className="block text-sm font-medium mb-1">Initial Portfolio (₹)</label>
         <input type="number" value={portfolio} onChange={(e) => setPortfolio(Number(e.target.value))} className="w-full bg-slate-700 p-2 rounded-md"/>
       </div>
       <div>

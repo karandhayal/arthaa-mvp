@@ -11,7 +11,6 @@ import { runBacktest } from '../../lib/backtestEngine';
 import { type StrategyFromDB } from '../components/SavedStrategies';
 import LoginModal from '../components/LoginModal';
 
-// Define a specific type for the backtest configuration
 interface BacktestConfig {
   strategy: StrategyFromDB;
   portfolio: number;
@@ -28,7 +27,7 @@ export default function BacktestPage() {
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
 
   const supabase = createClientComponentClient();
-  const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
+  const ALPHA_VANTAGE_API_KEY = process.env.NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY;
 
   useEffect(() => {
     const getSession = async () => {
@@ -43,31 +42,72 @@ export default function BacktestPage() {
     setBacktestResult(null);
 
     const { stock, timeframe, startDate, endDate } = config;
-    const url = `https://financialmodelingprep.com/api/v3/historical-chart/${timeframe}/${stock}?from=${startDate}&to=${endDate}&apikey=${FMP_API_KEY}`;
+
+    if (stock.toUpperCase().endsWith('.NS')) {
+        alert(`Invalid ticker format for the current data provider. Please use the Bombay Stock Exchange (BSE) suffix, for example: ${stock.toUpperCase().replace('.NS', '.BSE')}`);
+        setLoading(false);
+        return;
+    }
+
+    // --- THIS IS THE FIX ---
+    // The logic is updated to handle valid timeframes and prevent invalid API calls.
+    let avFunction = '';
+    let avInterval = '';
+
+    if (timeframe === '1day') {
+        avFunction = 'TIME_SERIES_DAILY';
+    } else if (timeframe === '1hour') {
+        avFunction = 'TIME_SERIES_INTRADAY';
+        avInterval = '60min';
+    } else if (timeframe === '4hour') {
+        // Alert the user that this timeframe is not supported and stop execution.
+        alert('The 4-hour timeframe is not supported by the current free data provider. Please select Daily or 1 Hour.');
+        setLoading(false);
+        return;
+    }
+
+    let url = `https://www.alphavantage.co/query?function=${avFunction}&symbol=${stock}&outputsize=full&apikey=${ALPHA_VANTAGE_API_KEY}`;
+    if (avFunction === 'TIME_SERIES_INTRADAY') {
+        url += `&interval=${avInterval}`;
+    }
 
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData?.['Error Message'] || 'Failed to fetch historical data.';
-        throw new Error(errorMessage);
+        throw new Error('Failed to fetch historical data from Alpha Vantage.');
+      }
+      
+      const rawData = await response.json();
+      const dataKey = Object.keys(rawData).find(key => key.includes('Time Series'));
+      if (!dataKey || !rawData[dataKey]) {
+        throw new Error(rawData['Note'] || rawData['Error Message'] || 'No data returned. The free Alpha Vantage API has a limit of 25 requests per day or the ticker symbol is invalid.');
       }
 
-      const historicalData: Candle[] = await response.json();
-      if (!historicalData || historicalData.length === 0) {
-        throw new Error('No data returned for this stock in the selected date range. Check the ticker symbol and dates.');
+      const historicalData: Candle[] = Object.entries(rawData[dataKey])
+        .map(([date, values]: [string, any]) => ({
+            date: date,
+            open: parseFloat(values['1. open']),
+            high: parseFloat(values['2. high']),
+            low: parseFloat(values['3. low']),
+            close: parseFloat(values['4. close']),
+            volume: parseInt(values['5. volume']),
+        }))
+        .filter(candle => new Date(candle.date) >= new Date(startDate) && new Date(candle.date) <= new Date(endDate));
+
+      if (historicalData.length === 0) {
+        throw new Error('No data found for the selected date range.');
       }
 
       const enrichedData = calculateIndicators(historicalData);
       const result = runBacktest(enrichedData, config.strategy.config, config.portfolio);
 
       setBacktestResult(result);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            alert(`An error occurred: ${error.message}`);
-        } else {
-            alert('An unknown error occurred.');
-        }
+    } catch (error: unknown) { // More robust error handling
+      if (error instanceof Error) {
+        alert(`An error occurred: ${error.message}`);
+      } else {
+        alert('An unknown error occurred.');
+      }
     } finally {
       setLoading(false);
     }
@@ -89,4 +129,4 @@ export default function BacktestPage() {
       </main>
     </div>
   );
-} 
+}
