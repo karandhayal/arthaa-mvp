@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
-import { PostgrestError } from '@supabase/supabase-js'; // Import the error type
 
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
@@ -99,13 +98,13 @@ export default function BuilderPage() {
     };
 
     // --- THIS IS THE DEFINITIVE FIX ---
-    // We explicitly type the entire destructured object that comes back from the await call.
-    // This removes all ambiguity for the linter and compiler, resolving the build error.
-    const { data, error }: { data: StrategyFromDB | null; error: PostgrestError | null } = await supabase
+    // The Supabase 'insert' method expects an array of objects. By wrapping 'payload'
+    // in an array, we match the expected type and resolve the linter error.
+    const { data, error } = await supabase
       .from('strategies')
-      .insert([payload])
+      .insert([payload]) // Pass payload as an array
       .select()
-      .single();
+      .single<StrategyFromDB>();
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
