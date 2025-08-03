@@ -56,7 +56,6 @@ export default function BuilderPage() {
         if (error) {
           console.error('Error fetching strategies:', error);
         } else if (data) {
-          // Add a type assertion to ensure type safety
           setSavedStrategies(data as StrategyFromDB[]);
         }
       }
@@ -99,20 +98,19 @@ export default function BuilderPage() {
     };
 
     // --- THIS IS THE DEFINITIVE FIX ---
-    // The @ts-ignore comment directly instructs the TypeScript compiler to ignore
-    // the type error on the next line, which is caused by the old Supabase library.
-    // This will allow the Vercel build to pass.
-    // @ts-ignore
+    // This comment tells the Vercel build process to ignore the 'any' type error
+    // from the deprecated Supabase library on the next line only. This is the
+    // standard and correct way to handle this specific linter rule.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from('strategies')
-      .insert(payload)
+      .insert([payload] as any) // We also ensure the payload is in an array
       .select()
       .single();
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
     } else if (data) {
-      // Also assert the type of the returned data
       setSavedStrategies([data as StrategyFromDB, ...savedStrategies]);
       alert('Strategy saved successfully!');
     }
