@@ -1,23 +1,17 @@
 'use client';
 
-// Define the specific shape of a single trading rule
-interface TradingRule {
-  indicator: string;
-  condition: string;
-  value: string;
-  logic?: 'AND' | 'OR';
-  id: number;
-}
+import { type RuleGroup } from './types'; // Import the new RuleGroup type
 
-// Define the shape of the strategy's configuration
+// --- THIS IS THE FIX ---
+// The StrategyConfig now correctly uses entryLogic and exitLogic.
 interface StrategyConfig {
-  entryConditions: TradingRule[];
-  exitConditions: TradingRule[];
+  entryLogic: RuleGroup;
+  exitLogic: RuleGroup;
   stopLoss: number;
   targetProfit: number;
+  trailingStopLoss: number;
 }
 
-// This is the final, specific type for a strategy fetched from the DB
 export type StrategyFromDB = {
   id: string;
   name: string;
