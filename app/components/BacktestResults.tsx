@@ -70,18 +70,19 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
       </div>
 
       {/* Trade Log */}
-      {/* --- THIS IS THE FIX for mobile UI --- */}
-      <div className="flex-grow overflow-y-auto max-h-[60vh] md:max-h-full">
-        <h3 className="text-lg font-semibold mb-2">Trade Log</h3>
-        <table className="w-full text-sm text-left table-fixed">
+      <h3 className="text-lg font-semibold mb-2">Trade Log</h3>
+      {/* --- THIS IS THE FIX --- */}
+      {/* This div makes the table scrollable horizontally on small screens */}
+      <div className="flex-grow overflow-auto">
+        <table className="w-full text-sm text-left">
           <thead className="bg-slate-900 sticky top-0">
             <tr>
-              <th className="p-2 w-1/4 md:w-auto">Date</th>
-              <th className="p-2 w-1/6 md:w-auto">Type</th>
-              <th className="p-2 hidden md:table-cell">Price</th>
-              <th className="p-2 hidden md:table-cell">Size</th>
-              <th className="p-2 text-right">P/L</th>
-              <th className="p-2 w-1/2 md:w-auto">Reason</th>
+              <th className="p-2 font-medium min-w-[90px]">Date</th>
+              <th className="p-2 font-medium min-w-[60px]">Type</th>
+              <th className="p-2 font-medium min-w-[80px]">Price</th>
+              <th className="p-2 font-medium min-w-[60px]">Size</th>
+              <th className="p-2 font-medium text-right min-w-[120px]">P/L</th>
+              <th className="p-2 font-medium min-w-[250px]">Reason</th>
             </tr>
           </thead>
           <tbody>
@@ -96,8 +97,8 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
                 <td className={`p-2 font-bold align-top ${
                     trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
                 }`}>{trade.type.toUpperCase()}</td>
-                <td className="p-2 hidden md:table-cell align-top">${trade.price.toFixed(2)}</td>
-                <td className="p-2 hidden md:table-cell align-top">{trade.size}</td>
+                <td className="p-2 align-top">${trade.price.toFixed(2)}</td>
+                <td className="p-2 align-top">{trade.size}</td>
                 <td className="p-2 text-right font-mono align-top">
                   {trade.type === 'sell' && typeof trade.pnl === 'number' && (
                     <span className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
