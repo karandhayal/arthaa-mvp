@@ -8,7 +8,7 @@ import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
 import LogicBuilder from '../components/LogicBuilder';
 import SummaryPanel from '../components/SummaryPannel';
-import SavedStrategies, { type StrategyFromDB } from '../components/SavedStrategies'; // Re-import the component
+import SavedStrategies, { type StrategyFromDB } from '../components/SavedStrategies';
 import { type RuleGroup } from '../components/types';
 
 // Define the shape of the strategy state
@@ -40,10 +40,9 @@ export default function BuilderPage() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]); // State for the list of saved strategies
+  const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]);
   const supabase = createClientComponentClient();
 
-  // Effect to get user session and fetch their saved strategies
   useEffect(() => {
     const getSessionAndStrategies = async (currentSession: Session | null) => {
       setSession(currentSession);
@@ -79,7 +78,6 @@ export default function BuilderPage() {
     setStrategy((prev) => ({ ...prev, exitLogic: logic }));
   };
 
-  // --- NEW: Corrected Save Function ---
   const handleSave = async () => {
     if (!session) {
       setIsModalOpen(true);
@@ -91,15 +89,16 @@ export default function BuilderPage() {
     }
 
     const { strategyName, entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss } = strategy;
-    
-    // The 'config' object now holds the new nested logic structure
     const strategyConfig = { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss };
 
+    // --- THIS IS THE FIX ---
+    // The 'as any' cast has been removed to satisfy the linter.
+    // The object structure is directly compatible with Supabase's JSONB type.
     const { data, error } = await supabase
       .from('strategies')
       .insert({
         name: strategyName,
-        config: strategyConfig as any, // Cast to any to match Supabase's JSONB type
+        config: strategyConfig,
         user_id: session.user.id,
       })
       .select()
@@ -113,11 +112,9 @@ export default function BuilderPage() {
     }
   };
 
-  // --- NEW: Load Strategy Function ---
   const loadStrategy = (strategyToLoad: StrategyFromDB) => {
     setStrategy({
       strategyName: strategyToLoad.name,
-      // Ensure loaded logic has a default empty rules array if it's missing
       entryLogic: strategyToLoad.config.entryLogic || { ...initialRuleGroup },
       exitLogic: strategyToLoad.config.exitLogic || { ...initialRuleGroup },
       stopLoss: strategyToLoad.config.stopLoss || 0,
@@ -127,7 +124,6 @@ export default function BuilderPage() {
     alert(`Strategy "${strategyToLoad.name}" loaded!`);
   };
 
-  // --- NEW: Delete Strategy Function ---
   const deleteStrategy = async (id: string) => {
     if (!confirm('Are you sure you want to delete this strategy?')) return;
     const { error } = await supabase.from('strategies').delete().eq('id', id);
@@ -152,7 +148,6 @@ export default function BuilderPage() {
       <div className="min-h-screen bg-slate-900 text-white flex flex-col">
         <Header session={session} onLoginClick={() => setIsModalOpen(true)} />
         <main className="flex flex-col md:flex-row flex-grow p-4 gap-4">
-          {/* --- RE-ADDED: Saved Strategies Panel --- */}
           <section className="w-full md:w-1/4 bg-slate-800 rounded-xl">
             {session ? (
               <SavedStrategies
@@ -168,7 +163,6 @@ export default function BuilderPage() {
             )}
           </section>
 
-          {/* Center Panel: Logic Builder */}
           <section className="w-full md:w-1/2 flex flex-col gap-4">
             <div className="bg-slate-700 rounded-xl p-4 flex-grow overflow-auto">
               <LogicBuilder
@@ -180,7 +174,6 @@ export default function BuilderPage() {
             </div>
           </section>
 
-          {/* Right Panel: Summary */}
           <section className="w-full md:w-1/4 bg-slate-800 rounded-xl">
             <SummaryPanel
               strategy={{

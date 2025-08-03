@@ -70,17 +70,18 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
       </div>
 
       {/* Trade Log */}
-      <div className="flex-grow overflow-y-auto">
+      {/* --- THIS IS THE FIX for mobile UI --- */}
+      <div className="flex-grow overflow-y-auto max-h-[60vh] md:max-h-full">
         <h3 className="text-lg font-semibold mb-2">Trade Log</h3>
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-left table-fixed">
           <thead className="bg-slate-900 sticky top-0">
             <tr>
-              <th className="p-2">Date</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">Price</th>
-              <th className="p-2">Size</th>
-              <th className="p-2">Reason</th>
+              <th className="p-2 w-1/4 md:w-auto">Date</th>
+              <th className="p-2 w-1/6 md:w-auto">Type</th>
+              <th className="p-2 hidden md:table-cell">Price</th>
+              <th className="p-2 hidden md:table-cell">Size</th>
               <th className="p-2 text-right">P/L</th>
+              <th className="p-2 w-1/2 md:w-auto">Reason</th>
             </tr>
           </thead>
           <tbody>
@@ -91,22 +92,21 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
                   trade.type === 'buy' ? 'bg-slate-800/50' : trade.pnl! >= 0 ? 'bg-green-900/30' : 'bg-red-900/30'
                 }`}
               >
-                <td className="p-2">{new Date(trade.date).toLocaleDateString()}</td>
-                {/* --- THIS IS THE FIX --- */}
-                <td className={`p-2 font-bold ${
+                <td className="p-2 align-top">{new Date(trade.date).toLocaleDateString()}</td>
+                <td className={`p-2 font-bold align-top ${
                     trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
                 }`}>{trade.type.toUpperCase()}</td>
-                <td className="p-2">${trade.price.toFixed(2)}</td>
-                <td className="p-2">{trade.size}</td>
-                <td className="p-2 text-slate-400">{trade.reason || 'N/A'}</td>
-                <td className="p-2 text-right font-mono">
+                <td className="p-2 hidden md:table-cell align-top">${trade.price.toFixed(2)}</td>
+                <td className="p-2 hidden md:table-cell align-top">{trade.size}</td>
+                <td className="p-2 text-right font-mono align-top">
                   {trade.type === 'sell' && typeof trade.pnl === 'number' && (
                     <span className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
                       {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                      <span className="text-xs text-slate-500 ml-2">({trade.pnl_percent?.toFixed(2)}%)</span>
+                      <span className="block text-xs text-slate-500">({trade.pnl_percent?.toFixed(2)}%)</span>
                     </span>
                   )}
                 </td>
+                <td className="p-2 text-slate-400 break-words align-top">{trade.reason || 'N/A'}</td>
               </tr>
             ))}
           </tbody>
