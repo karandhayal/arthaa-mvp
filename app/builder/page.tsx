@@ -101,7 +101,8 @@ export default function BuilderPage() {
       .select()
       .single();
 
-    const newStrategy = data as StrategyFromDB;
+    const newStrategy: StrategyFromDB = data!;
+
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
