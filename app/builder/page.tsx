@@ -98,20 +98,19 @@ export default function BuilderPage() {
     };
 
     // --- THIS IS THE DEFINITIVE FIX ---
-    // This comment tells the Vercel build process to ignore the 'any' type error
-    // from the deprecated Supabase library on the next line only. This is the
-    // standard and correct way to handle this specific linter rule.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // We explicitly type the data returned from the .single() method.
+    // This removes the 'any' type ambiguity and satisfies the Vercel linter.
     const { data, error } = await supabase
       .from('strategies')
-      .insert([payload] as any) // We also ensure the payload is in an array
+      .insert(payload)
       .select()
-      .single();
+      .single<StrategyFromDB>(); // Specify the return type here
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
     } else if (data) {
-      setSavedStrategies([data as StrategyFromDB, ...savedStrategies]);
+      // No need to cast 'data' here anymore, as it's already correctly typed.
+      setSavedStrategies([data, ...savedStrategies]);
       alert('Strategy saved successfully!');
     }
   };
