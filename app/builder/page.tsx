@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Session } from '@supabase/auth-helpers-nextjs';
+import { PostgrestError } from '@supabase/supabase-js'; // Import the error type
 
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
@@ -98,15 +99,13 @@ export default function BuilderPage() {
     };
 
     // --- THIS IS THE DEFINITIVE FIX ---
-    // This comment tells the Vercel build process to ignore the 'any' type error
-    // from the deprecated Supabase library on the next line only. This is the
-    // standard and correct way to handle this specific linter rule.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await supabase
+    // We explicitly type the entire destructured object that comes back from the await call.
+    // This removes all ambiguity for the linter and compiler, resolving the build error.
+    const { data, error }: { data: StrategyFromDB | null; error: PostgrestError | null } = await supabase
       .from('strategies')
-      .insert([payload] as any) 
+      .insert([payload])
       .select()
-      .single<StrategyFromDB>();
+      .single();
 
     if (error) {
       alert('Error saving strategy: ' + error.message);
