@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { Session } from '@supabase/auth-helpers-nextjs';
 
 // Define the shape of the strategy data it receives
@@ -7,10 +8,10 @@ type Strategy = {
   strategyName: string;
   stopLoss: number;
   targetProfit: number;
+  trailingStopLoss: number; // New field
 };
 
-// --- THIS IS THE FIX ---
-// Add session and onLogout to the props definition
+// Define the props for the component
 type SummaryPanelProps = {
   strategy: Strategy;
   onChange: (field: keyof Strategy, value: string | number) => void;
@@ -19,6 +20,20 @@ type SummaryPanelProps = {
   onLogout: () => void;
 };
 
+// A reusable toggle switch component
+function Toggle({ label, enabled, setEnabled }: { label: string, enabled: boolean, setEnabled: (enabled: boolean) => void }) {
+    return (
+        <label className="flex items-center justify-between cursor-pointer">
+            <span className="font-semibold">{label}</span>
+            <div className={`relative w-12 h-6 rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${enabled ? 'transform translate-x-6' : ''}`}></div>
+            </div>
+            <input type="checkbox" className="hidden" checked={enabled} onChange={() => setEnabled(!enabled)} />
+        </label>
+    );
+}
+
+
 export default function SummaryPanel({
   strategy,
   onChange,
@@ -26,6 +41,11 @@ export default function SummaryPanel({
   session,
   onLogout
 }: SummaryPanelProps) {
+  // State to manage if the features are enabled
+  const [slEnabled, setSlEnabled] = useState(false);
+  const [tpEnabled, setTpEnabled] = useState(false);
+  const [tslEnabled, setTslEnabled] = useState(false);
+
   return (
     <div className="bg-slate-800 text-white p-6 rounded-xl shadow-md flex flex-col gap-6 h-full">
       <h2 className="text-xl font-semibold">Strategy Summary</h2>
@@ -40,29 +60,52 @@ export default function SummaryPanel({
           className="bg-slate-700 p-2 rounded-md text-white outline-none"
         />
       </div>
-      <div className="flex flex-col">
-        <label className="text-sm mb-1">Stop Loss (%)</label>
-        <input
-          type="number"
-          value={strategy.stopLoss}
-          onChange={(e) => onChange('stopLoss', Number(e.target.value))}
-          placeholder="e.g. 5"
-          className="bg-slate-700 p-2 rounded-md text-white outline-none"
-        />
-      </div>
-      <div className="flex flex-col">
-        <label className="text-sm mb-1">Target Profit (%)</label>
-        <input
-          type="number"
-          value={strategy.targetProfit}
-          onChange={(e) => onChange('targetProfit', Number(e.target.value))}
-          placeholder="e.g. 10"
-          className="bg-slate-700 p-2 rounded-md text-white outline-none"
-        />
+      
+      <div className="space-y-4">
+        <Toggle label="Stop Loss" enabled={slEnabled} setEnabled={setSlEnabled} />
+        {slEnabled && (
+            <div className="pl-4">
+                <label className="text-sm mb-1 block">Stop Loss (%)</label>
+                <input
+                    type="number"
+                    value={strategy.stopLoss}
+                    onChange={(e) => onChange('stopLoss', Number(e.target.value))}
+                    placeholder="e.g. 5"
+                    className="w-full bg-slate-700 p-2 rounded-md text-white outline-none"
+                />
+            </div>
+        )}
+
+        <Toggle label="Target Profit" enabled={tpEnabled} setEnabled={setTpEnabled} />
+        {tpEnabled && (
+            <div className="pl-4">
+                <label className="text-sm mb-1 block">Target Profit (%)</label>
+                <input
+                    type="number"
+                    value={strategy.targetProfit}
+                    onChange={(e) => onChange('targetProfit', Number(e.target.value))}
+                    placeholder="e.g. 10"
+                    className="w-full bg-slate-700 p-2 rounded-md text-white outline-none"
+                />
+            </div>
+        )}
+
+        <Toggle label="Trailing Stop Loss" enabled={tslEnabled} setEnabled={setTslEnabled} />
+        {tslEnabled && (
+            <div className="pl-4">
+                <label className="text-sm mb-1 block">Trailing Stop Loss (%)</label>
+                <input
+                    type="number"
+                    value={strategy.trailingStopLoss}
+                    onChange={(e) => onChange('trailingStopLoss', Number(e.target.value))}
+                    placeholder="e.g. 2"
+                    className="w-full bg-slate-700 p-2 rounded-md text-white outline-none"
+                />
+            </div>
+        )}
       </div>
       
       <div className="mt-auto flex flex-col gap-4">
-        {/* This logic will now work correctly */}
         {session ? (
             <div className='text-center text-sm'>
               <p>Logged in as: {session.user.email}</p>

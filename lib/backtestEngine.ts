@@ -1,11 +1,16 @@
-import { type EnrichedCandle } from './indicators';
+// In lib/backtestEngine.ts
 
-// Define the shape of a single trade and the overall result
+import { type EnrichedCandle } from './indicators';
+import { type Rule, type RuleGroup } from '../app/components/types';
+
 interface Trade {
   type: 'buy' | 'sell';
   price: number;
   date: string;
   size: number;
+  reason?: string;
+  pnl?: number; // Profit/Loss in dollars
+  pnl_percent?: number; // Profit/Loss in percentage
 }
 
 export interface BacktestResult {
@@ -16,103 +21,131 @@ export interface BacktestResult {
   totalTrades: number;
 }
 
-// Define the shape of a trading rule and the strategy config
-interface TradingRule {
-    indicator: string;
-    condition: string;
-    value: string;
-}
-
-interface StrategyConfig {
-    entryConditions: TradingRule[];
-    exitConditions: TradingRule[];
-    stopLoss: number;
-    targetProfit: number;
-}
-
-// The main backtesting function with proper types
 export function runBacktest(
   enrichedData: EnrichedCandle[],
-  strategyConfig: StrategyConfig,
+  strategyConfig: { entryLogic: RuleGroup, exitLogic: RuleGroup, stopLoss?: number, targetProfit?: number, trailingStopLoss?: number },
   initialPortfolio: number
 ): BacktestResult {
   let portfolio = initialPortfolio;
   let position: Trade | null = null;
   const trades: Trade[] = [];
   let wins = 0;
+  let peakPortfolio = initialPortfolio;
 
-  const {
-    entryConditions,
-    exitConditions,
-    stopLoss: stopLossPercent,
-    targetProfit: targetProfitPercent,
-  } = strategyConfig;
+  const { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss } = strategyConfig;
 
-  const checkCondition = (condition: TradingRule, candle: EnrichedCandle, prevCandle?: EnrichedCandle): boolean => {
-    if (!candle || !prevCandle) return false;
-    const { indicator, condition: logic, value } = condition;
-    switch (indicator) {
-        case 'RSI': {
-            if (!candle.rsi || !prevCandle.rsi) return false;
-            const rsiValue = Number(value);
-            if (logic === 'Is Below') return candle.rsi < rsiValue;
-            if (logic === 'Is Above') return candle.rsi > rsiValue;
-            if (logic === 'Crosses Above') return prevCandle.rsi <= rsiValue && candle.rsi > rsiValue;
-            if (logic === 'Crosses Below') return prevCandle.rsi >= rsiValue && candle.rsi < rsiValue;
-            break;
+  const evaluateGroup = (group: RuleGroup, candle: EnrichedCandle, prevCandle: EnrichedCandle): { met: boolean; reasons: string[] } => {
+    if (!group || !Array.isArray(group.rules)) return { met: false, reasons: [] };
+    const reasonResults: string[] = [];
+    for (const item of group.rules) {
+        let itemMet = false;
+        let itemReason = '';
+        if ('logic' in item) {
+            const subGroupResult = evaluateGroup(item as RuleGroup, candle, prevCandle);
+            if (subGroupResult.met) {
+                itemMet = true;
+                itemReason = `(${subGroupResult.reasons.join(` ${item.logic} `)})`;
+            }
+        } else {
+            const reason = checkCondition(item as Rule, candle, prevCandle);
+            if (reason) {
+                itemMet = true;
+                itemReason = reason;
+            }
         }
-        case 'MACD': {
-            if (!candle.macd?.MACD || !prevCandle.macd?.MACD || !candle.macd.signal || !prevCandle.macd.signal) return false;
-            if (logic === 'Is Positive') return candle.macd.MACD > 0;
-            if (logic === 'Is Negative') return candle.macd.MACD < 0;
-            if (logic === 'Crosses Above Signal') return prevCandle.macd.MACD <= prevCandle.macd.signal && candle.macd.MACD > candle.macd.signal;
-            if (logic === 'Crosses Below Signal') return prevCandle.macd.MACD >= prevCandle.macd.signal && candle.macd.MACD < candle.macd.signal;
-            break;
-        }
-        case 'Moving Average': {
-            if (!candle.sma20 || !candle.sma50 || !prevCandle.sma20 || !prevCandle.sma50) return false;
-            const targetSma = value === 'Moving Average(50)' ? candle.sma50 : candle.sma20;
-            const prevTargetSma = value === 'Moving Average(50)' ? prevCandle.sma50 : prevCandle.sma20;
-            if (logic === 'Is Above') return candle.close > targetSma;
-            if (logic === 'Is Below') return candle.close < targetSma;
-            if (logic === 'Crosses Above') return prevCandle.close <= prevTargetSma && candle.close > targetSma;
-            if (logic === 'Crosses Below') return prevCandle.close >= prevTargetSma && candle.close < targetSma;
-            break;
-        }
-        case 'Candle': {
-            if (logic === 'Higher High') return candle.high > prevCandle.high;
-            if (logic === 'Lower Low') return candle.low < prevCandle.low;
-            break;
+        if (itemMet) {
+            reasonResults.push(itemReason);
+            if (group.logic === 'OR') return { met: true, reasons: reasonResults };
+        } else {
+            if (group.logic === 'AND') return { met: false, reasons: [] };
         }
     }
-    return false;
+    return { met: reasonResults.length > 0, reasons: reasonResults };
+  };
+
+  const checkCondition = (rule: Rule, candle: EnrichedCandle, prevCandle: EnrichedCandle): string | null => {
+    if (!candle || !prevCandle) return null;
+    const { indicator, condition, value } = rule;
+     switch (indicator) {
+      case 'RSI':
+        if (!candle.rsi || !prevCandle.rsi) return null;
+        if (condition === 'Is Below' && candle.rsi < Number(value)) return `RSI (${candle.rsi.toFixed(2)}) < ${value}`;
+        if (condition === 'Is Above' && candle.rsi > Number(value)) return `RSI (${candle.rsi.toFixed(2)}) > ${value}`;
+        if (condition === 'Crosses Above' && prevCandle.rsi <= Number(value) && candle.rsi > Number(value)) return `RSI Crosses Above ${value}`;
+        if (condition === 'Crosses Below' && prevCandle.rsi >= Number(value) && candle.rsi < Number(value)) return `RSI Crosses Below ${value}`;
+        break;
+      case 'MACD':
+        if (!candle.macd?.MACD || !candle.macd.signal) return null;
+        if (condition === 'Is Positive' && candle.macd.MACD > 0) return `MACD is Positive`;
+        if (condition === 'Is Negative' && candle.macd.MACD < 0) return `MACD is Negative`;
+        if (condition === 'Crosses Above Signal' && prevCandle.macd!.MACD! <= prevCandle.macd!.signal! && candle.macd.MACD > candle.macd.signal) return `MACD Crosses Signal`;
+        if (condition === 'Crosses Below Signal' && prevCandle.macd!.MACD! >= prevCandle.macd!.signal! && candle.macd.MACD < candle.macd.signal) return `MACD Crosses Below Signal`;
+        break;
+      case 'Bollinger Bands':
+          if(!candle.bb || !prevCandle.bb) return null;
+          if(condition === 'Price is Above' && candle.close > candle.bb.upper) return `Price > Upper Band`;
+          if(condition === 'Price is Below' && candle.close < candle.bb.lower) return `Price < Lower Band`;
+          if(condition === 'Price Crosses Above' && prevCandle.close <= prevCandle.bb.upper && candle.close > candle.bb.upper) return `Price Crosses Upper Band`;
+          if(condition === 'Price Crosses Below' && prevCandle.close >= prevCandle.bb.lower && candle.close < candle.bb.lower) return `Price Crosses Lower Band`;
+          break;
+    }
+    return null;
   };
 
   for (let i = 1; i < enrichedData.length; i++) {
     const candle = enrichedData[i];
     const prevCandle = enrichedData[i - 1];
+
     if (position) {
-      const pnl = (candle.close - position.price) / position.price;
-      const shouldExit =
-        (stopLossPercent && pnl <= -stopLossPercent / 100) ||
-        (targetProfitPercent && pnl >= targetProfitPercent / 100) ||
-        (exitConditions.length > 0 && exitConditions.every((cond) => checkCondition(cond, candle, prevCandle)));
-      if (shouldExit) {
-        const exitTrade: Trade = { type: 'sell', price: candle.close, date: candle.date, size: position.size };
+      const currentPortfolioValue = portfolio + position.size * candle.close;
+      if (currentPortfolioValue > peakPortfolio) peakPortfolio = currentPortfolioValue;
+
+      const pnl_percent = (candle.close - position.price) / position.price;
+      const trailingStopPrice = peakPortfolio * (1 - (trailingStopLoss || 0) / 100);
+      
+      let exitReason = '';
+
+      if (stopLoss && pnl_percent <= -stopLoss / 100) exitReason = 'Stop Loss Hit';
+      else if (targetProfit && pnl_percent >= targetProfit / 100) exitReason = 'Target Profit Hit';
+      else if (trailingStopLoss && currentPortfolioValue < trailingStopPrice) exitReason = 'Trailing Stop Loss Hit';
+      else {
+          const exitResult = evaluateGroup(exitLogic, candle, prevCandle);
+          if (exitResult.met) exitReason = exitResult.reasons.join(` ${exitLogic.logic} `);
+      }
+
+      if (exitReason) {
+        const pnl = (candle.close - position.price) * position.size;
+        const exitTrade: Trade = { 
+            type: 'sell', 
+            price: candle.close, 
+            date: candle.date, 
+            size: position.size, 
+            reason: exitReason,
+            pnl: pnl,
+            pnl_percent: pnl_percent * 100
+        };
         trades.push(exitTrade);
         portfolio += exitTrade.price * exitTrade.size;
         if (exitTrade.price > position.price) wins++;
         position = null;
+        peakPortfolio = portfolio;
       }
     }
+
     if (!position) {
-      const shouldEnter = entryConditions.length > 0 && entryConditions.every((cond) => checkCondition(cond, candle, prevCandle));
-      if (shouldEnter) {
-        const tradeSize = portfolio / candle.close;
-        const entryTrade: Trade = { type: 'buy', price: candle.close, date: candle.date, size: tradeSize };
-        trades.push(entryTrade);
-        portfolio -= entryTrade.price * entryTrade.size;
-        position = entryTrade;
+      const entryResult = evaluateGroup(entryLogic, candle, prevCandle);
+      if (entryResult.met) {
+        const entryReason = entryResult.reasons.join(` ${entryLogic.logic} `);
+        // --- THIS IS THE FIX ---
+        // Calculate the number of whole shares that can be bought
+        const tradeSize = Math.floor(portfolio / candle.close); 
+        
+        if (tradeSize > 0) {
+            const entryTrade: Trade = { type: 'buy', price: candle.close, date: candle.date, size: tradeSize, reason: entryReason };
+            trades.push(entryTrade);
+            portfolio -= entryTrade.price * entryTrade.size;
+            position = entryTrade;
+        }
       }
     }
   }
