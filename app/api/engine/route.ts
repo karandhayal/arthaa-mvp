@@ -5,6 +5,16 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { enrichCandlesWithIndicators } from '../../../lib/indicatorManager';
 import { type RuleGroup } from '../../../app/components/types';
+import { type StrategyFromDB } from '../../../app/components/SavedStrategies';
+
+// Define a more specific type for the strategy object we fetch
+type LiveStrategyPayload = {
+  id: string;
+  user_id: string;
+  allocation_config: { stocks: { symbol: string }[] };
+  strategies: StrategyFromDB;
+  broker_config: { jwt_token: string }[];
+};
 
 export async function POST() {
   const supabase = createRouteHandlerClient({ cookies });
@@ -21,7 +31,8 @@ export async function POST() {
     }
 
     for (const strategy of activeStrategies) {
-      await processStrategy(strategy, supabase);
+      // Cast to our specific type to ensure type safety
+      await processStrategy(strategy as LiveStrategyPayload, supabase);
     }
 
     return NextResponse.json({ status: 'success', message: 'Engine run completed.' });
@@ -33,7 +44,7 @@ export async function POST() {
   }
 }
 
-async function processStrategy(strategy: Record<string, any>, supabase: SupabaseClient) {
+async function processStrategy(strategy: LiveStrategyPayload, supabase: SupabaseClient) {
   const { user_id, strategies: strategyDetails, broker_config, allocation_config } = strategy;
   
   if (!broker_config || broker_config.length === 0) {
@@ -51,7 +62,7 @@ async function processStrategy(strategy: Record<string, any>, supabase: Supabase
     }
 
     for (const stock of allocation_config.stocks) {
-      const historicalData = await getHistoricalData(stock.symbol);
+      const historicalData = await getHistoricalData();
       const enrichedData = enrichCandlesWithIndicators(historicalData, { config: strategyDetails.config });
       const latestCandle = enrichedData[enrichedData.length - 1];
       const prevCandle = enrichedData[enrichedData.length - 2];
@@ -73,14 +84,14 @@ async function processStrategy(strategy: Record<string, any>, supabase: Supabase
   }
 }
 
-async function getHistoricalData(symbol: string) {
+async function getHistoricalData() {
     return [
         { date: '2023-01-01T10:00:00.000Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 },
         { date: '2023-01-02T10:00:00.000Z', open: 101, high: 103, low: 100, close: 102, volume: 1200 },
     ];
 }
 
-function evaluateGroup(group: RuleGroup, candle: any, prevCandle: any): { met: boolean; reasons: string[] } {
+function evaluateGroup(group: RuleGroup, candle: Record<string, any>, prevCandle: Record<string, any>): { met: boolean; reasons: string[] } {
     if (group.rules.length > 0 && candle.close > prevCandle.close) {
         return { met: true, reasons: ["Price increased"] };
     }
