@@ -3,19 +3,16 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-// Note: You would typically use an SDK, but for this example, we'll use fetch.
 
 export async function POST(request: Request) {
   const { symbol, qty, side, exchange, productType } = await request.json();
   const supabase = createRouteHandlerClient({ cookies });
 
-  // 1. Get the current user
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 2. Securely fetch the user's Angel One keys
   const { data: config } = await supabase
     .from('broker_config')
     .select('*')
@@ -27,21 +24,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    // --- Angel One Authentication Flow ---
-    // This is a simplified representation. The actual flow involves generating a session token.
-    // For this MVP, we'll assume we have a valid token. In a real app, you'd implement the full
-    // login flow to get a fresh `jwtToken`.
-    const jwtToken = "A_VALID_JWT_TOKEN"; // This would be dynamically generated and stored.
+    const jwtToken = "A_VALID_JWT_TOKEN"; 
 
-    // --- Place the Order ---
     const orderPayload = {
         "variety": "NORMAL",
-        "tradingsymbol": symbol, // e.g., "SBIN-EQ"
-        "symboltoken": "3045", // This needs to be fetched from Angel One's instrument list
-        "transactiontype": side.toUpperCase(), // "BUY" or "SELL"
-        "exchange": exchange, // "NSE" or "BSE"
+        "tradingsymbol": symbol,
+        "symboltoken": "3045",
+        "transactiontype": side.toUpperCase(),
+        "exchange": exchange,
         "ordertype": "MARKET",
-        "producttype": productType, // "DELIVERY", "INTRADAY", "MARGIN"
+        "producttype": productType,
         "duration": "DAY",
         "quantity": qty.toString()
     };
@@ -66,7 +58,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result.data);
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

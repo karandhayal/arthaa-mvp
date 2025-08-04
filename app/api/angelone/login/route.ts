@@ -11,7 +11,7 @@ export async function GET() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     // If no user, redirect them to the account page to log in first
-    return NextResponse.redirect(new URL('/account', process.env.NEXT_PUBLIC_BASE_URL));
+    return NextResponse.redirect(new URL('/account', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'));
   }
 
   // 2. Securely fetch the user's saved Angel One API key
@@ -23,7 +23,7 @@ export async function GET() {
 
   if (!config || !config.api_key) {
     // If they haven't saved their keys, send them back to the account page
-    return NextResponse.redirect(new URL('/account?error=no_keys', process.env.NEXT_PUBLIC_BASE_URL));
+    return NextResponse.redirect(new URL('/account?error=no_keys', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'));
   }
 
   // 3. Construct the official Angel One login URL and redirect the user
