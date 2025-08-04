@@ -23,7 +23,16 @@ export default function RuleGroup({ group, onUpdateGroup, onDelete, isRoot = fal
   const handleAddItem = (itemType: 'rule' | 'group') => {
     let newItem: Rule | RuleGroupType;
     if (itemType === 'rule') {
-      newItem = { id: Date.now() };
+      // --- THIS IS THE FIX ---
+      // Create a default RSI rule instead of an empty one.
+      newItem = { 
+        id: Date.now(),
+        indicator: 'RSI',
+        period1: 14,
+        condition: 'Is Below',
+        value_type: 'number',
+        value_number: 30
+      };
     } else {
       newItem = { id: Date.now(), logic: 'AND', rules: [] };
     }
@@ -80,7 +89,7 @@ export default function RuleGroup({ group, onUpdateGroup, onDelete, isRoot = fal
             <RuleBlock 
               rule={item as Rule} 
               onDelete={() => handleDeleteItem(item.id)}
-              onUpdate={handleUpdateItem} // Pass the handler directly
+              onUpdate={handleUpdateItem}
             />
           ) : (
             <RuleGroup 

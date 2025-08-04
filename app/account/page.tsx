@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation'; // Correct import for App Router
+import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/auth-helpers-nextjs';
+import BrokerConnectionForm from '../components/BrokerConnectionForm'; // Import the new component
 
 export default function AccountPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -17,7 +18,6 @@ export default function AccountPage() {
       if (user) {
         setUser(user);
       } else {
-        // If no user is found, redirect to the home page.
         router.push('/');
       }
       setLoading(false);
@@ -27,7 +27,6 @@ export default function AccountPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Redirect to home page after logout.
     router.push('/');
   };
 
@@ -45,13 +44,8 @@ export default function AccountPage() {
         <h1 className="text-2xl font-bold mb-6 text-emerald-400">My Account</h1>
         {user && (
           <div className="space-y-4">
-            <p>
-              <span className="font-semibold">Email:</span> {user.email}
-            </p>
-            <p>
-              <span className="font-semibold">Last Signed In:</span>{' '}
-              {new Date(user.last_sign_in_at || '').toLocaleString()}
-            </p>
+            <p><span className="font-semibold">Email:</span> {user.email}</p>
+            <p><span className="font-semibold">Last Signed In:</span>{' '}{new Date(user.last_sign_in_at || '').toLocaleString()}</p>
           </div>
         )}
         <button
@@ -60,6 +54,15 @@ export default function AccountPage() {
         >
           Logout
         </button>
+
+        {/* --- NEW: Broker Connection Section --- */}
+        <div className="mt-10 pt-6 border-t border-slate-700">
+            <h2 className="text-xl font-bold mb-4">Broker Connection</h2>
+            <p className="text-sm text-slate-400 mb-4">
+                Connect your Angel One account to enable live strategy execution.
+            </p>
+            <BrokerConnectionForm />
+        </div>
       </div>
     </div>
   );

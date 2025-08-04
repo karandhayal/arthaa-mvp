@@ -6,9 +6,10 @@ interface Trade {
   price: number;
   date: string;
   size: number;
+  symbol: string; // Added symbol
   reason?: string;
-  pnl?: number; // Profit/Loss in currency
-  pnl_percent?: number; // Profit/Loss in percentage
+  pnl?: number;
+  pnl_percent?: number;
 }
 
 export interface BacktestResult {
@@ -76,6 +77,7 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
           <thead className="bg-slate-900 sticky top-0">
             <tr>
               <th className="p-2 font-medium min-w-[90px]">Date</th>
+              <th className="p-2 font-medium min-w-[90px]">Symbol</th>
               <th className="p-2 font-medium min-w-[60px]">Type</th>
               <th className="p-2 font-medium min-w-[80px]">Price</th>
               <th className="p-2 font-medium min-w-[60px]">Size</th>
@@ -92,6 +94,7 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
                 }`}
               >
                 <td className="p-2 align-top">{new Date(trade.date).toLocaleDateString()}</td>
+                <td className="p-2 align-top font-bold">{trade.symbol}</td>
                 <td className={`p-2 font-bold align-top ${
                     trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
                 }`}>{trade.type.toUpperCase()}</td>
