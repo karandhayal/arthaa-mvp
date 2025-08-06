@@ -1,140 +1,118 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { type Rule } from './types';
-import { FiSettings } from 'react-icons/fi';
+import React from 'react';
 
-const INDICATOR_CONFIG: Record<string, any> = {
-    'RSI': { params: [{ name: 'Period', key: 'period1', default: 14 }], conditions: ['Is Above', 'Is Below', 'Crosses Above', 'Crosses Below'], values: [{ type: 'number', label: 'Number' }] },
-    'MACD': { params: [{ name: 'Fast', key: 'period1', default: 12 }, { name: 'Slow', key: 'period2', default: 26 }], conditions: ['Crosses Above Signal', 'Crosses Below Signal'], values: [] },
-    'Moving Average': { params: [{ name: 'Period', key: 'period1', default: 20 }], conditions: ['Crosses Above', 'Crosses Below', 'Is Above', 'Is Below'], values: [{ type: 'static', label: 'Price' }, { type: 'indicator', label: 'Another MA' }] },
-    'EMA': { params: [{ name: 'Period', key: 'period1', default: 12 }], conditions: ['Crosses Above', 'Crosses Below', 'Is Above', 'Is Below'], values: [{ type: 'static', label: 'Price' }, { type: 'indicator', label: 'Another EMA' }] },
-    'Bollinger Bands': { params: [{ name: 'Period', key: 'period1', default: 20 }], conditions: ['Price Crosses Above', 'Price Crosses Below'], values: [{ type: 'static', label: 'Upper Band' }, { type: 'static', label: 'Lower Band' }] },
-    'Candle': { params: [], conditions: ['Higher High', 'Lower Low'], values: [] },
+// Types for rule
+type Rule = {
+  id: number;
+  indicator?: keyof typeof conditionOptionsMap;
+  condition?: string;
+  value?: string;
 };
 
+// Maps for dropdown options
+const indicatorOptions = ['RSI', 'MACD', 'Moving Average', 'Candle'] as const;
+
+const conditionOptionsMap = {
+  RSI: ['Is Above', 'Is Below', 'Crosses Above', 'Crosses Below'],
+  MACD: ['Crosses Above Signal', 'Crosses Below Signal', 'Is Positive', 'Is Negative'],
+  'Moving Average': ['Crosses Above', 'Crosses Below', 'Is Above', 'Is Below'],
+  Candle: ['Bullish Engulfing', 'Bearish Engulfing', 'Higher High', 'Lower Low'],
+} as const;
+
+const valueOptionsMap = {
+  RSI: ['30', '50', '70'],
+  MACD: ['0', 'Signal Line'],
+  'Moving Average': ['Moving Average(20)', 'Moving Average(50)', 'Price'],
+  Candle: ['Previous Candle', 'Current Close'],
+} as const;
+
+// Props type
 type RuleBlockProps = {
   rule: Rule;
   onDelete: () => void;
-  onUpdate: (updatedRule: Rule) => void;
+  onUpdate: (field: keyof Omit<Rule, 'id'>, value: string) => void;
 };
 
-export default function RuleBlock({ rule, onDelete, onUpdate }: RuleBlockProps) {
-  const [showSettings, setShowSettings] = useState(false);
-  const [useOffset, setUseOffset] = useState(!!rule.offset_value);
-  const config = rule.indicator ? INDICATOR_CONFIG[rule.indicator] : null;
-
-  useEffect(() => {
-    setUseOffset(!!rule.offset_value);
-  }, [rule.offset_value]);
-
+const RuleBlock: React.FC<RuleBlockProps> = ({ rule, onDelete, onUpdate }) => {
   const handleIndicatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newIndicator = e.target.value;
-    const newConfig = INDICATOR_CONFIG[newIndicator];
-    const newRule: Rule = {
-      id: rule.id,
-      indicator: newIndicator,
-      period1: newConfig.params.find((p: { key: string; }) => p.key === 'period1')?.default,
-      period2: newConfig.params.find((p: { key: string; }) => p.key === 'period2')?.default,
-      value_type: newConfig.values[0]?.type,
-      value_indicator: newConfig.values[0]?.label,
-      offset_type: undefined,
-      offset_value: undefined,
-    };
-    onUpdate(newRule);
-    setUseOffset(false);
+    const newIndicator = e.target.value as Rule['indicator'];
+    onUpdate('indicator', newIndicator);
+    onUpdate('condition', '');
+    onUpdate('value', '');
   };
-
-  const updateParam = (key: keyof Rule, value: string) => {
-    onUpdate({ ...rule, [key]: Number(value) });
-  };
-
-  const canHaveOffset = rule.condition?.toLowerCase().includes('cross');
 
   return (
     <div className="bg-slate-700 rounded-xl p-4 flex flex-col gap-4 text-white shadow-md">
-        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-            <select value={rule.indicator || ''} onChange={handleIndicatorChange} className="bg-slate-800 p-2 rounded-md font-semibold w-full">
-                <option value="" disabled>Select Indicator</option>
-                {Object.keys(INDICATOR_CONFIG).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            {config && config.params.length > 0 && (
-                <button onClick={() => setShowSettings(!showSettings)} className={`p-2 rounded-md transition-colors ${showSettings ? 'bg-emerald-500' : 'bg-slate-600 hover:bg-slate-500'}`}>
-                    <FiSettings />
-                </button>
-            )}
-            <button onClick={onDelete} className="text-red-400 hover:text-red-500 transition-colors text-xl p-2" title="Delete Rule">❌</button>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Trading Rule</h3>
+        <button
+          onClick={onDelete}
+          className="text-red-400 hover:text-red-500 transition-colors text-xl"
+          title="Delete Rule"
+        >
+          ❌
+        </button>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Indicator Dropdown */}
+        <div className="flex flex-col flex-1">
+          <label className="text-sm mb-1">Indicator</label>
+          <select
+            value={rule.indicator || ''}
+            onChange={handleIndicatorChange}
+            className="bg-slate-800 p-2 rounded-md text-white outline-none"
+          >
+            <option value="" disabled>Select indicator</option>
+            {indicatorOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
         </div>
-        {showSettings && config && config.params.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 p-2 bg-slate-600/50 rounded-md">
-                {config.params.map((param: {key: keyof Rule, name: string}) => (
-                    <div key={param.key}>
-                        <label className="text-xs text-slate-400">{param.name}</label>
-                        <input type="number" value={rule[param.key] as number || ''} onChange={(e) => updateParam(param.key, e.target.value)} className="w-full bg-slate-800 p-1 rounded-md text-sm" />
-                    </div>
-                ))}
-            </div>
-        )}
-        {rule.indicator && (
-            <div className="flex flex-col md:flex-row items-stretch gap-4">
-                <select value={rule.condition || ''} onChange={(e) => onUpdate({ ...rule, condition: e.target.value })} className="bg-slate-800 p-2 rounded-md w-full md:w-1/2">
-                    <option value="" disabled>Select Condition</option>
-                    {config?.conditions.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                {config && config.values.length > 0 && (
-                    <div className="w-full md:w-1/2">
-                        <ValueInput rule={rule} onUpdate={onUpdate} config={config} />
-                    </div>
-                )}
-            </div>
-        )}
-        {canHaveOffset && (
-            <div className="mt-2 p-3 bg-slate-600/50 rounded-lg">
-                <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" className="h-4 w-4 rounded text-emerald-500 bg-slate-800 border-slate-600 focus:ring-emerald-500" checked={useOffset} onChange={() => setUseOffset(!useOffset)} />
-                    <span className="text-sm">Add offset (e.g., crosses by 0.5%)</span>
-                </label>
-                {useOffset && (
-                    <div className="mt-3 flex items-center gap-2">
-                        <input type="number" placeholder="0.5" className="bg-slate-800 p-2 rounded-md w-1/2" value={rule.offset_value || ''} onChange={(e) => onUpdate({ ...rule, offset_value: Number(e.target.value) })} />
-                        <select className="bg-slate-800 p-2 rounded-md w-1/2" value={rule.offset_type || 'percentage'} onChange={(e) => onUpdate({ ...rule, offset_type: e.target.value as 'percentage' | 'value' })}>
-                            <option value="percentage">%</option>
-                            <option value="value">Value</option>
-                        </select>
-                    </div>
-                )}
-            </div>
-        )}
+
+        {/* Condition Dropdown */}
+        <div className="flex flex-col flex-1">
+          <label className="text-sm mb-1">Condition</label>
+          <select
+            value={rule.condition || ''}
+            onChange={(e) => onUpdate('condition', e.target.value)}
+            className="bg-slate-800 p-2 rounded-md text-white outline-none"
+            disabled={!rule.indicator}
+          >
+            <option value="" disabled>Select condition</option>
+            {rule.indicator &&
+              conditionOptionsMap[rule.indicator]?.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        {/* Value Dropdown */}
+        <div className="flex flex-col flex-1">
+          <label className="text-sm mb-1">Value</label>
+          <select
+            value={rule.value || ''}
+            onChange={(e) => onUpdate('value', e.target.value)}
+            className="bg-slate-800 p-2 rounded-md text-white outline-none"
+            disabled={!rule.indicator}
+          >
+            <option value="" disabled>Select value</option>
+            {rule.indicator &&
+              valueOptionsMap[rule.indicator]?.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
-}
+};
 
-function ValueInput({ rule, onUpdate, config }: { rule: Rule, onUpdate: (rule: Rule) => void, config: Record<string, any> }) {
-    const valueType = rule.value_type || config.values[0]?.type;
-    return (
-        <div className="flex flex-col gap-2 h-full">
-            {config.values.length > 1 && (
-                <div className="flex items-center bg-slate-800 rounded-md p-1 w-full">
-                    {config.values.map((val: { type: string, label: string }) => {
-                        let isActive = val.type === 'static' ? rule.value_indicator === val.label : valueType === val.type;
-                        return (
-                            <button key={val.label} onClick={() => onUpdate({ ...rule, value_type: val.type, value_indicator: val.label })} className={`flex-1 text-xs px-2 py-1 rounded ${isActive ? 'bg-emerald-500' : 'hover:bg-slate-700'}`}>
-                                {val.label}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
-            {valueType === 'number' && (
-                <input type="number" placeholder="Value" value={rule.value_number || ''} onChange={(e) => onUpdate({ ...rule, value_number: Number(e.target.value) })} className="bg-slate-800 p-2 rounded-md w-full" />
-            )}
-            {valueType === 'indicator' && (
-                <div className="flex items-center gap-2 w-full bg-slate-800 p-2 rounded-md">
-                    <span className="text-sm">{rule.indicator}(</span>
-                    <input type="number" placeholder="Period" value={rule.value_period1 || ''} onChange={(e) => onUpdate({ ...rule, value_period1: Number(e.target.value) })} className="bg-slate-900 p-1 rounded-md w-full text-center" />
-                    <span className="text-sm">)</span>
-                </div>
-            )}
-        </div>
-    );
-}
+export default RuleBlock;
