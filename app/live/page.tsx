@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
 import DeployModal, { type AllocationConfig } from '../components/DeployModal';
 import { type StrategyFromDB } from '../components/SavedStrategies';
-import LiveTradeLog from '../components/LiveTradeLog'; // Import the new component
-import { FiPlayCircle, FiZap, FiLogIn, FiStopCircle } from 'react-icons/fi';
-import Link from 'next/link';
+import LiveTradeLog from '../components/LiveTradeLog';
+import { FiPlayCircle, FiLogIn, FiStopCircle } from 'react-icons/fi';
 
 type LiveStrategy = {
   id: string;
@@ -27,7 +25,7 @@ export default function LivePage() {
   const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]);
   const [liveStrategies, setLiveStrategies] = useState<LiveStrategy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [brokerConfig, setBrokerConfig] = useState<any | null>(null);
+  const [brokerConfig, setBrokerConfig] = useState<Record<string, unknown> | null>(null);
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -36,7 +34,7 @@ export default function LivePage() {
       setSession(currentSession);
       if (currentSession) {
         const { data: strategiesData } = await supabase.from('strategies').select('*').eq('user_id', currentSession.user.id);
-        if (strategiesData) setSavedStrategies(strategiesData);
+        if (strategiesData) setSavedStrategies(strategiesData as StrategyFromDB[]);
         const { data: liveData } = await supabase.from('live_strategies').select('*, strategies(*)').eq('user_id', currentSession.user.id);
         if (liveData) setLiveStrategies(liveData as LiveStrategy[]);
         const { data: config } = await supabase.from('broker_config').select('id').eq('user_id', currentSession.user.id).single();
@@ -44,8 +42,8 @@ export default function LivePage() {
       }
       setLoading(false);
     };
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      getSessionAndData(session);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      getSessionAndData(currentSession);
     });
   }, [supabase]);
 
@@ -98,11 +96,9 @@ export default function LivePage() {
     <>
       <LoginModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} strategy={strategyToDeploy} onConfirmDeploy={handleConfirmDeploy} />
-      
       <div className="min-h-screen bg-slate-900 text-white flex flex-col">
         <Header session={session} onLoginClick={() => setIsModalOpen(true)} />
         <main className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col md:flex-row gap-6">
-          {/* Left Column: Strategy Management */}
           <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col gap-6">
              {!session ? (
                  <div className="text-center py-20 bg-slate-800/50 rounded-xl flex-grow flex flex-col justify-center"><FiLogIn className="mx-auto text-5xl text-slate-500 mb-4" /><h3 className="font-bold text-xl">Please Log In</h3><p className="text-slate-400 text-sm mt-2 mb-6">You need to be logged in to manage live strategies.</p><button onClick={() => setIsModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-2 rounded-lg self-center">Login / Sign Up</button></div>
@@ -122,7 +118,6 @@ export default function LivePage() {
                         </div>
                     ) : <p className="text-slate-400 text-sm p-4 bg-slate-800/50 rounded-lg">No strategies are currently active.</p>}
                   </div>
-
                   <div>
                     <h2 className="text-2xl font-bold mb-4">Available to Deploy</h2>
                     {availableStrategies.length > 0 ? (
@@ -139,7 +134,6 @@ export default function LivePage() {
                 </>
               )}
           </div>
-          {/* Right Column: Live Trade Log */}
           <div className="w-full md:w-1/2 lg:w-3/5">
               <LiveTradeLog session={session} />
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import { FiActivity, FiAlertTriangle } from 'react-icons/fi';
 
 type TradeLog = {
@@ -16,7 +16,7 @@ type TradeLog = {
 };
 
 type LiveTradeLogProps = {
-  session: any; // Using 'any' for simplicity, should be Session | null
+  session: Session | null;
 };
 
 export default function LiveTradeLog({ session }: LiveTradeLogProps) {
@@ -26,7 +26,6 @@ export default function LiveTradeLog({ session }: LiveTradeLogProps) {
   useEffect(() => {
     if (!session) return;
 
-    // Fetch initial logs
     const fetchLogs = async () => {
       const { data } = await supabase
         .from('trade_logs')
@@ -38,7 +37,6 @@ export default function LiveTradeLog({ session }: LiveTradeLogProps) {
     };
     fetchLogs();
 
-    // Listen for new logs in real-time
     const channel = supabase
       .channel('trade_logs_channel')
       .on(
@@ -79,8 +77,10 @@ export default function LiveTradeLog({ session }: LiveTradeLogProps) {
                     {new Date(log.executed_at).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 mt-1">{log.reason}</p>
-                 {log.status === 'failed' && <FiAlertTriangle className="inline-block text-red-400 mr-1" />}
+                <p className="text-xs text-slate-300 mt-1">
+                    {log.status === 'failed' && <FiAlertTriangle className="inline-block text-red-400 mr-1" />}
+                    {log.reason}
+                </p>
               </div>
             ))}
           </div>

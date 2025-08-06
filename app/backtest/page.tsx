@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import Header from '../components/Header';
 import BacktestControls, { type PortfolioBacktestConfig } from '../components/BacktestControls';
-import BacktestResults, { type BacktestResult } from '../components/BacktestResults';
+import BacktestResults, { type BacktestResult, type Trade } from '../components/BacktestResults';
 import { enrichCandlesWithIndicators, type Candle } from '../../lib/indicatorManager';
 import { runBacktest } from '../../lib/backtestEngine';
 import { type StrategyFromDB } from '../components/SavedStrategies';
@@ -83,7 +83,7 @@ export default function BacktestPage() {
         )
       );
 
-      const aggregatedTrades: any[] = [];
+      const aggregatedTrades: Trade[] = [];
       let totalInitialCapital = 0;
       let totalFinalCapital = 0;
 

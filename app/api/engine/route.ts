@@ -1,4 +1,3 @@
-// In app/api/engine/route.ts
 import { createRouteHandlerClient, SupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';

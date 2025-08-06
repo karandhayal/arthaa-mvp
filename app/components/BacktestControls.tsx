@@ -1,10 +1,8 @@
-// In app/components/BacktestControls.tsx
 'use client';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { type StrategyFromDB } from './SavedStrategies';
 import { FiX, FiPlus, FiDollarSign, FiActivity, FiZap } from 'react-icons/fi';
-import { Session } from '@supabase/auth-helpers-nextjs';
 
 export interface PortfolioBacktestConfig {
   strategy: StrategyFromDB;

@@ -6,7 +6,7 @@ interface Trade {
   price: number;
   date: string;
   size: number;
-  symbol: string; // Added symbol to the trade object
+  symbol: string;
   reason?: string;
   pnl?: number;
   pnl_percent?: number;
@@ -24,7 +24,7 @@ export function runBacktest(
   enrichedData: EnrichedCandle[],
   strategyConfig: { entryLogic: RuleGroup, exitLogic: RuleGroup, stopLoss?: number, targetProfit?: number, trailingStopLoss?: number },
   initialPortfolio: number,
-  symbol: string // Symbol is now a required parameter
+  symbol: string
 ): BacktestResult {
   let portfolio = initialPortfolio;
   let position: Trade | null = null;
@@ -34,7 +34,6 @@ export function runBacktest(
 
   const { entryLogic, exitLogic, stopLoss, targetProfit, trailingStopLoss } = strategyConfig;
 
-  // Helper functions for getting indicator keys and values
   const getIndicatorKey = (indicator: string, p1?: number, p2?: number): string => {
     if (!indicator) return '';
     switch (indicator) {
@@ -54,7 +53,7 @@ export function runBacktest(
       const key = getIndicatorKey(indicator, p1, p2);
       const indicatorData = candle.indicators[key];
       if (typeof indicatorData === 'object' && subIndicator) {
-          return (indicatorData as any)[subIndicator];
+          return (indicatorData as Record<string, number>)[subIndicator];
       }
       return indicatorData as number;
   };
@@ -91,12 +90,10 @@ export function runBacktest(
   const checkCondition = (rule: Rule, candle: EnrichedCandle, prevCandle: EnrichedCandle): string | null => {
     const { indicator, condition, period1, period2, value_type, value_number, value_indicator, value_period1 } = rule;
     if (!indicator || !condition) return null;
-
     let currentVal: number | undefined;
     let prevVal: number | undefined;
     let targetVal: number | undefined;
     let prevTargetVal: number | undefined;
-
     if (indicator === 'MACD') {
         currentVal = getIndicatorValue(candle, indicator, period1, period2, 'MACD');
         prevVal = getIndicatorValue(prevCandle, indicator, period1, period2, 'MACD');
@@ -106,7 +103,6 @@ export function runBacktest(
         currentVal = getIndicatorValue(candle, indicator, period1, period2);
         prevVal = getIndicatorValue(prevCandle, indicator, period1, period2);
     }
-
     if (value_type === 'number') {
         targetVal = value_number;
     } else if (value_type === 'indicator') {
@@ -124,13 +120,10 @@ export function runBacktest(
             prevTargetVal = getIndicatorValue(prevCandle, indicator, period1, period2, 'lower');
         }
     }
-
     if (currentVal === undefined || prevVal === undefined || targetVal === undefined) return null;
-
     const offset = rule.offset_value || 0;
     const offsetMultiplier = rule.offset_type === 'percentage' ? 1 + (offset / 100) : 1;
     const offsetValue = rule.offset_type === 'value' ? offset : 0;
-
     if (condition === 'Is Above' && currentVal > targetVal) return formatRule(rule);
     if (condition === 'Is Below' && currentVal < targetVal) return formatRule(rule);
     if (condition === 'Crosses Above' && prevVal <= (prevTargetVal ?? targetVal) && currentVal > (targetVal * offsetMultiplier) + offsetValue) return formatRule(rule);
@@ -139,7 +132,6 @@ export function runBacktest(
     if (condition === 'Crosses Below Signal' && prevVal >= (prevTargetVal ?? targetVal) && currentVal < targetVal) return `${indicator} Crosses Below Signal`;
     if (indicator === 'Candle' && condition === 'Higher High' && candle.high > prevCandle.high) return 'Candle made a Higher High';
     if (indicator === 'Candle' && condition === 'Lower Low' && candle.low < prevCandle.low) return 'Candle made a Lower Low';
-
     return null;
   };
 
