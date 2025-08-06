@@ -10,7 +10,10 @@ export interface Rule {
   condition?: string;
   
   // The value to compare against
-  value_type?: 'number' | 'indicator';
+  // MODIFICATION: Added 'static' to the union type to allow for comparisons
+  // against static values like 'Price', 'Upper Band', etc. This fixes the
+  // compilation error in RuleBlock.tsx.
+  value_type?: 'number' | 'static' | 'indicator'; 
   value_indicator?: string;
   value_number?: number;
   value_period1?: number;
