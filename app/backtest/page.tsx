@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import Header from '../components/Header';
 import BacktestControls, { type PortfolioBacktestConfig } from '../components/BacktestControls';
 import BacktestResults, { type BacktestResult } from '../components/BacktestResults';
@@ -10,26 +9,6 @@ import { enrichCandlesWithIndicators, type Candle } from '../../lib/indicatorMan
 import { runBacktest } from '../../lib/backtestEngine';
 import { type StrategyFromDB } from '../components/SavedStrategies';
 import LoginModal from '../components/LoginModal';
-
-// --- THIS IS THE FIX ---
-// Define which timeframes require the Angel One "Deep Testing"
-const PREMIUM_TIMEFRAMES = ['TEN_MINUTE', 'THREE_MINUTE'];
-const ALPHA_VANTAGE_SUPPORTED_TIMEFRAMES: Record<string, string> = {
-    'ONE_DAY': 'TIME_SERIES_DAILY',
-    'ONE_HOUR': 'TIME_SERIES_INTRADAY',
-    'THIRTY_MINUTE': 'TIME_SERIES_INTRADAY',
-    'FIFTEEN_MINUTE': 'TIME_SERIES_INTRADAY',
-    'FIVE_MINUTE': 'TIME_SERIES_INTRADAY',
-    'ONE_MINUTE': 'TIME_SERIES_INTRADAY',
-};
-const ALPHA_VANTAGE_INTERVAL_MAP: Record<string, string> = {
-    'ONE_HOUR': '60min',
-    'THIRTY_MINUTE': '30min',
-    'FIFTEEN_MINUTE': '15min',
-    'FIVE_MINUTE': '5min',
-    'ONE_MINUTE': '1min',
-};
-
 
 export default function BacktestPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -53,8 +32,8 @@ export default function BacktestPage() {
         if (config) setBrokerConnected(true);
       }
     };
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      getSessionAndData(session);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      getSessionAndData(currentSession);
     });
   }, [supabase]);
 
@@ -69,8 +48,10 @@ export default function BacktestPage() {
       if (!response.ok) throw new Error(data.error || 'Failed to fetch data from Angel One.');
       return data;
     } else {
-      const avFunction = ALPHA_VANTAGE_SUPPORTED_TIMEFRAMES[timeframe];
-      const avInterval = ALPHA_VANTAGE_INTERVAL_MAP[timeframe];
+      const avFunctionMap: Record<string, string> = { 'ONE_DAY': 'TIME_SERIES_DAILY', 'ONE_HOUR': 'TIME_SERIES_INTRADAY', 'THIRTY_MINUTE': 'TIME_SERIES_INTRADAY', 'FIFTEEN_MINUTE': 'TIME_SERIES_INTRADAY', 'FIVE_MINUTE': 'TIME_SERIES_INTRADAY', 'ONE_MINUTE': 'TIME_SERIES_INTRADAY' };
+      const avIntervalMap: Record<string, string> = { 'ONE_HOUR': '60min', 'THIRTY_MINUTE': '30min', 'FIFTEEN_MINUTE': '15min', 'FIVE_MINUTE': '5min', 'ONE_MINUTE': '1min' };
+      const avFunction = avFunctionMap[timeframe];
+      const avInterval = avIntervalMap[timeframe];
       let url = `https://www.alphavantage.co/query?function=${avFunction}&symbol=${stock}&outputsize=full&apikey=${ALPHA_VANTAGE_API_KEY}`;
       if (avInterval) url += `&interval=${avInterval}`;
       
@@ -80,14 +61,13 @@ export default function BacktestPage() {
       if (!dataKey) throw new Error(rawData['Note'] || 'Failed to fetch data from Alpha Vantage.');
 
       return Object.entries(rawData[dataKey])
-        .map(([date, values]: [string, any]) => ({ date, open: parseFloat(values['1. open']), high: parseFloat(values['2. high']), low: parseFloat(values['3. low']), close: parseFloat(values['4. close']), volume: parseInt(values['5. volume']) }))
+        .map(([date, values]: [string, Record<string, string>]) => ({ date, open: parseFloat(values['1. open']), high: parseFloat(values['2. high']), low: parseFloat(values['3. low']), close: parseFloat(values['4. close']), volume: parseInt(values['5. volume']) }))
         .filter(c => new Date(c.date) >= new Date(startDate) && new Date(c.date) <= new Date(endDate));
     }
   };
 
   const handleRunBacktest = async (config: PortfolioBacktestConfig, useDeepTest: boolean) => {
-    // --- THIS IS THE FIX ---
-    // Check if a premium timeframe was selected without Deep Testing
+    const PREMIUM_TIMEFRAMES = ['TEN_MINUTE', 'THREE_MINUTE'];
     if (PREMIUM_TIMEFRAMES.includes(config.timeframe) && !useDeepTest) {
         alert('This timeframe is only available with Deep Testing. Please connect your Angel One account to use this feature.');
         return;
@@ -130,8 +110,9 @@ export default function BacktestPage() {
         totalTrades: totalBuyTrades,
       });
 
-    } catch (error: any) {
-      alert(`An error occurred: ${error.message}`);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        alert(`An error occurred: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

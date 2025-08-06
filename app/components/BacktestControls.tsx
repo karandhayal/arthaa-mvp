@@ -1,11 +1,11 @@
+// In app/components/BacktestControls.tsx
 'use client';
-
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { type StrategyFromDB } from './SavedStrategies';
 import { FiX, FiPlus, FiDollarSign, FiActivity, FiZap } from 'react-icons/fi';
+import { Session } from '@supabase/auth-helpers-nextjs';
 
-// This interface defines the shape of the advanced configuration
 export interface PortfolioBacktestConfig {
   strategy: StrategyFromDB;
   timeframe: string;
@@ -13,36 +13,28 @@ export interface PortfolioBacktestConfig {
   endDate: string;
   allocationType: 'static' | 'dynamic';
   totalCapital: number;
-  stocks: {
-    symbol: string;
-    amount?: number;
-  }[];
+  stocks: { symbol: string; amount?: number; }[];
 }
 
 type BacktestControlsProps = {
-  session: any; // Session | null
+  session: Session | null;
   brokerConnected: boolean;
   savedStrategies: StrategyFromDB[];
   onRunBacktest: (config: PortfolioBacktestConfig, useDeepTest: boolean) => void;
 };
 
-export default function BacktestControls({ session, brokerConnected, savedStrategies, onRunBacktest }: BacktestControlsProps) {
+export default function BacktestControls({ brokerConnected, savedStrategies, onRunBacktest }: BacktestControlsProps) {
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyFromDB | null>(null);
   const [timeframe, setTimeframe] = useState('ONE_DAY'); 
   const [startDate, setStartDate] = useState('2023-01-01');
   const [endDate, setEndDate] = useState('2023-12-31');
-  
   const [stocks, setStocks] = useState<string[]>([]);
   const [currentStock, setCurrentStock] = useState('');
   const [allocationType, setAllocationType] = useState<'dynamic' | 'static'>('dynamic');
   const [staticAllocations, setStaticAllocations] = useState<Record<string, number>>({});
   const [dynamicCapital, setDynamicCapital] = useState(100000);
-
   const router = useRouter();
-
-  const totalStaticCapital = useMemo(() => {
-    return Object.values(staticAllocations).reduce((sum, amount) => sum + (amount || 0), 0);
-  }, [staticAllocations]);
+  const totalStaticCapital = useMemo(() => Object.values(staticAllocations).reduce((sum, amount) => sum + (amount || 0), 0), [staticAllocations]);
 
   const handleAddStock = () => {
     if (currentStock && !stocks.includes(currentStock.toUpperCase())) {
@@ -59,38 +51,19 @@ export default function BacktestControls({ session, brokerConnected, savedStrate
   };
 
   const handleRun = (useDeepTest: boolean) => {
-    if (!selectedStrategy) {
-      alert('Please select a strategy to run.');
-      return;
-    }
-    if (stocks.length === 0) {
-      alert('Please add at least one stock.');
-      return;
-    }
-    if (useDeepTest && !brokerConnected) {
-      alert('Please connect your Angel One account on the Account page to use Deep Testing.');
-      router.push('/account');
-      return;
-    }
-
+    if (!selectedStrategy) { alert('Please select a strategy to run.'); return; }
+    if (stocks.length === 0) { alert('Please add at least one stock.'); return; }
+    if (useDeepTest && !brokerConnected) { alert('Please connect your Angel One account on the Account page to use Deep Testing.'); router.push('/account'); return; }
     const config: PortfolioBacktestConfig = {
-      strategy: selectedStrategy,
-      timeframe,
-      startDate,
-      endDate,
-      allocationType,
+      strategy: selectedStrategy, timeframe, startDate, endDate, allocationType,
       totalCapital: allocationType === 'dynamic' ? dynamicCapital : totalStaticCapital,
-      stocks: stocks.map(symbol => ({
-        symbol,
-        ...(allocationType === 'static' && { amount: staticAllocations[symbol] || 0 }),
-      })),
+      stocks: stocks.map(symbol => ({ symbol, ...(allocationType === 'static' && { amount: staticAllocations[symbol] || 0 }) })),
     };
     onRunBacktest(config, useDeepTest);
   };
 
   return (
     <div className="flex flex-col gap-6 h-full">
-      {/* Strategy Selection */}
       <div>
         <label className="block text-sm font-medium mb-1">1. Select a Strategy</label>
         <select value={selectedStrategy?.id || ''} onChange={(e) => setSelectedStrategy(savedStrategies.find(s => s.id === e.target.value) || null)} className="w-full bg-slate-700 p-2 rounded-md">
@@ -98,8 +71,6 @@ export default function BacktestControls({ session, brokerConnected, savedStrate
           {savedStrategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
-
-      {/* Stock Selection */}
       <div>
         <label className="block text-sm font-medium mb-1">2. Select Stocks (BSE)</label>
         <div className="flex gap-2">
@@ -115,8 +86,6 @@ export default function BacktestControls({ session, brokerConnected, savedStrate
             ))}
         </div>
       </div>
-      
-      {/* Capital Allocation */}
       <div>
         <label className="block text-sm font-medium mb-2">3. Capital Allocation</label>
         <div className="flex bg-slate-700 rounded-lg p-1">
@@ -139,23 +108,13 @@ export default function BacktestControls({ session, brokerConnected, savedStrate
             )}
         </div>
       </div>
-
-      {/* --- THIS IS THE FIX --- */}
-      {/* Date & Timeframe */}
       <div>
         <label className="block text-sm font-medium mb-1">4. Time & Date Range</label>
         <div className="flex gap-4">
             <div className="w-full">
                 <label className="block text-xs font-medium mb-1 text-slate-400">Timeframe</label>
                 <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)} className="w-full bg-slate-700 p-2 rounded-md">
-                    <option value="ONE_DAY">1 Day</option>
-                    <option value="ONE_HOUR">1 Hour</option>
-                    <option value="THIRTY_MINUTE">30 Minute</option>
-                    <option value="FIFTEEN_MINUTE">15 Minute</option>
-                    <option value="TEN_MINUTE">10 Minute</option>
-                    <option value="FIVE_MINUTE">5 Minute</option>
-                    <option value="THREE_MINUTE">3 Minute</option>
-                    <option value="ONE_MINUTE">1 Minute</option>
+                    <option value="ONE_DAY">1 Day</option><option value="ONE_HOUR">1 Hour</option><option value="THIRTY_MINUTE">30 Minute</option><option value="FIFTEEN_MINUTE">15 Minute</option><option value="TEN_MINUTE">10 Minute</option><option value="FIVE_MINUTE">5 Minute</option><option value="THREE_MINUTE">3 Minute</option><option value="ONE_MINUTE">1 Minute</option>
                 </select>
             </div>
         </div>
@@ -170,15 +129,9 @@ export default function BacktestControls({ session, brokerConnected, savedStrate
             </div>
         </div>
       </div>
-
-      {/* Run Buttons */}
       <div className="mt-auto pt-4 border-t border-slate-700 space-y-3">
-          <button onClick={() => handleRun(false)} className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 font-bold rounded-lg shadow-lg hover:opacity-90 transition-opacity">
-            Run Backtest
-          </button>
-           <button onClick={() => handleRun(true)} className="w-full py-3 bg-gradient-to-r from-purple-500 to-violet-600 font-bold rounded-lg shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-            <FiZap /> Deep Testing (via Angel One)
-          </button>
+          <button onClick={() => handleRun(false)} className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 font-bold rounded-lg shadow-lg hover:opacity-90 transition-opacity">Run Backtest</button>
+           <button onClick={() => handleRun(true)} className="w-full py-3 bg-gradient-to-r from-purple-500 to-violet-600 font-bold rounded-lg shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"><FiZap /> Deep Testing (via Angel One)</button>
       </div>
     </div>
   );
