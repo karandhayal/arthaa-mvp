@@ -1,12 +1,13 @@
 'use client';
 
-// Define the shape of a single trade and the overall result
-interface Trade {
+// --- THIS IS THE FIX ---
+// The 'Trade' interface is now correctly exported.
+export interface Trade {
   type: 'buy' | 'sell';
   price: number;
   date: string;
   size: number;
-  symbol: string; // Added symbol
+  symbol: string;
   reason?: string;
   pnl?: number;
   pnl_percent?: number;
@@ -44,7 +45,6 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
 
   return (
     <div className="flex flex-col h-full">
-      {/* Key Metrics Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-slate-700 p-4 rounded-lg">
           <p className="text-sm text-slate-300">Final Portfolio</p>
@@ -52,11 +52,7 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
         </div>
         <div className="bg-slate-700 p-4 rounded-lg">
           <p className="text-sm text-slate-300">Net Performance</p>
-          <p
-            className={`text-2xl font-bold ${
-              result.performance >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}
-          >
+          <p className={`text-2xl font-bold ${result.performance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {result.performance.toFixed(2)}%
           </p>
         </div>
@@ -69,8 +65,6 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
           <p className="text-2xl font-bold">{result.winRate.toFixed(1)}%</p>
         </div>
       </div>
-
-      {/* Trade Log */}
       <h3 className="text-lg font-semibold mb-2">Trade Log</h3>
       <div className="flex-grow overflow-auto">
         <table className="w-full text-sm text-left">
@@ -87,17 +81,10 @@ export default function BacktestResults({ result, loading }: BacktestResultsProp
           </thead>
           <tbody>
             {result.trades.map((trade, index) => (
-              <tr
-                key={index}
-                className={`border-b border-slate-700 ${
-                  trade.type === 'buy' ? 'bg-slate-800/50' : trade.pnl! >= 0 ? 'bg-green-900/30' : 'bg-red-900/30'
-                }`}
-              >
+              <tr key={index} className={`border-b border-slate-700 ${trade.type === 'buy' ? 'bg-slate-800/50' : trade.pnl! >= 0 ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
                 <td className="p-2 align-top">{new Date(trade.date).toLocaleDateString()}</td>
                 <td className="p-2 align-top font-bold">{trade.symbol}</td>
-                <td className={`p-2 font-bold align-top ${
-                    trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
-                }`}>{trade.type.toUpperCase()}</td>
+                <td className={`p-2 font-bold align-top ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>{trade.type.toUpperCase()}</td>
                 <td className="p-2 align-top">₹{trade.price.toFixed(2)}</td>
                 <td className="p-2 align-top">{trade.size}</td>
                 <td className="p-2 text-right font-mono align-top">
