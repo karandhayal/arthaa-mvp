@@ -83,7 +83,7 @@ export default function BacktestPage() {
         )
       );
 
-      let aggregatedTrades: any[] = [];
+      const aggregatedTrades: any[] = [];
       let totalInitialCapital = 0;
       let totalFinalCapital = 0;
 
@@ -94,7 +94,7 @@ export default function BacktestPage() {
         totalInitialCapital += initialCapital;
         const enrichedData = enrichCandlesWithIndicators(historicalData, config.strategy);
         const result = runBacktest(enrichedData, config.strategy.config, initialCapital, stock.symbol);
-        aggregatedTrades = [...aggregatedTrades, ...result.trades];
+        aggregatedTrades.push(...result.trades);
         totalFinalCapital += result.finalPortfolio;
       });
 
@@ -125,7 +125,7 @@ export default function BacktestPage() {
       <main className="flex flex-col md:flex-row flex-grow p-4 gap-4">
         <section className="w-full md:w-1/3 lg:w-1/4 bg-slate-800 rounded-xl p-4">
           <h2 className="text-xl font-bold mb-4">Portfolio Backtest</h2>
-          <BacktestControls session={session} brokerConnected={brokerConnected} savedStrategies={savedStrategies} onRunBacktest={handleRunBacktest} />
+          <BacktestControls brokerConnected={brokerConnected} savedStrategies={savedStrategies} onRunBacktest={handleRunBacktest} />
         </section>
         <section className="w-full md:w-2/3 lg:w-3/4 bg-slate-800 rounded-xl p-4">
            <h2 className="text-xl font-bold mb-4">Results</h2>

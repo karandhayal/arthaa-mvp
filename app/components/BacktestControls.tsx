@@ -17,7 +17,6 @@ export interface PortfolioBacktestConfig {
 }
 
 type BacktestControlsProps = {
-  session: Session | null;
   brokerConnected: boolean;
   savedStrategies: StrategyFromDB[];
   onRunBacktest: (config: PortfolioBacktestConfig, useDeepTest: boolean) => void;
