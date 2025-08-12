@@ -5,8 +5,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiArrowRight, FiBarChart2, FiCpu, FiZap } from 'react-icons/fi';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import type { Session } from '@supabase/supabase-js'; 
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
 

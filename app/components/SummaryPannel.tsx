@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import type { Session } from '@supabase/supabase-js'; 
 
 // Define the shape of the strategy data it receives
 type Strategy = {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import type { Session } from '@supabase/supabase-js';
 import { FiActivity, FiAlertTriangle } from 'react-icons/fi';
 
 type TradeLog = {

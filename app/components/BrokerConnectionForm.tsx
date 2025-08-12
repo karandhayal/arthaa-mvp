@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-
+import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import type { Session } from '@supabase/supabase-js';
 export default function BrokerConnectionForm() {
   const [apiKey, setApiKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
