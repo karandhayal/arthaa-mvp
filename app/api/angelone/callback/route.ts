@@ -12,7 +12,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account?error=auth_failed', baseUrl));
   }
 
-  const supabase = createRouteHandlerClient({ cookies });
+  // --- CORRECTED SUPABASE CLIENT INITIALIZATION ---
+  // 1. Get the cookie store for the current request.
+  const cookieStore = cookies();
+  // 2. Create the client and pass the cookieStore inside a function.
+  const supabase = createRouteHandlerClient({
+    cookies: () => cookieStore,
+  });
+  // --- END OF CORRECTION ---
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     return NextResponse.redirect(new URL('/account?error=no_session', baseUrl));
@@ -48,7 +56,7 @@ export async function GET(request: Request) {
 
     const { jwtToken, refreshToken, feedToken } = tokenData.data;
 
-    await supabase
+    const { error } = await supabase
       .from('broker_config')
       .update({
         jwt_token: jwtToken,
@@ -57,10 +65,16 @@ export async function GET(request: Request) {
       })
       .eq('user_id', session.user.id);
 
+    if (error) {
+      // Throw the database error to be caught by the catch block
+      throw error;
+    }
+
     return NextResponse.redirect(new URL('/live?status=connected', baseUrl));
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    console.error("Error in Angel One callback:", errorMessage);
     return NextResponse.redirect(new URL(`/account?error=${encodeURIComponent(errorMessage)}`, baseUrl));
   }
 }
