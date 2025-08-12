@@ -1,4 +1,5 @@
-import { createRouteHandlerClient, SupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { createRouteHandlerClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { enrichCandlesWithIndicators } from '../../../lib/indicatorManager';

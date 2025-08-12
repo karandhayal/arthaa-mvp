@@ -1,5 +1,6 @@
 // In app/api/angelone/callback/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import type { Session } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
