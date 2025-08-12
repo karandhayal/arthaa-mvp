@@ -1,20 +1,22 @@
-// In app/auth/callback/route.ts
+    import { createClient } from '@/lib/supabase/server'
+    import { NextResponse } from 'next/server'
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+    export async function GET(request: Request) {
+      const { searchParams, origin } = new URL(request.url)
+      const code = searchParams.get('code')
+      
+      if (code) {
+        const supabase = createClient()
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) {
+          // On success, redirect the user to a page inside your app.
+          // The new library will handle the session synchronization.
+          return NextResponse.redirect(`${origin}/builder`)
+        }
+      }
 
-import type { NextRequest } from 'next/server';
-
-export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
-
-  if (code) {
-    const supabase = createRouteHandlerClient({ cookies });
-    await supabase.auth.exchangeCodeForSession(code);
-  }
-
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(requestUrl.origin);
-}
+      // If there's an error or no code, redirect to an error page
+      console.error('Authentication failed in callback.')
+      return NextResponse.redirect(`${origin}/`)
+    }
+    

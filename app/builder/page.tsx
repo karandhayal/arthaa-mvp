@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+// --- UPDATED IMPORTS ---
+import { createClient } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
 import Header from '../components/Header';
@@ -39,33 +40,50 @@ export default function BuilderPage() {
     trailingStopLoss: 0,
   });
 
+  // --- UPDATED STATE AND INITIALIZATION ---
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]);
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
-    const getSessionAndStrategies = async (currentSession: Session | null) => {
-      setSession(currentSession);
-      if (currentSession) {
-        const { data, error } = await supabase
-          .from('strategies')
-          .select('*')
-          .eq('user_id', currentSession.user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching strategies:', error);
-        } else if (data) {
-          setSavedStrategies(data as StrategyFromDB[]);
+    // Fetch the initial session
+    const getInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session) {
+            fetchStrategies(session.user.id);
         }
-      }
     };
+    getInitialSession();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      getSessionAndStrategies(session);
+    // Listen for changes to the authentication state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        setIsModalOpen(false);
+        fetchStrategies(session.user.id);
+      } else {
+        setSavedStrategies([]);
+      }
     });
-  }, [supabase, supabase.auth]);
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const fetchStrategies = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching strategies:', error);
+    } else if (data) {
+      setSavedStrategies(data as StrategyFromDB[]);
+    }
+  };
 
   const handleUpdateField = (field: keyof Omit<Strategy, 'entryLogic' | 'exitLogic'>, value: string | number) => {
     setStrategy((prev) => ({ ...prev, [field]: value }));
@@ -98,12 +116,9 @@ export default function BuilderPage() {
         user_id: session.user.id,
     };
 
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // The Supabase 'insert' method expects an array. By wrapping 'payload'
-    // in an array and explicitly typing the entire return object, we resolve all ambiguity.
     const { data, error }: { data: StrategyFromDB | null; error: PostgrestError | null } = await supabase
       .from('strategies')
-      .insert([payload]) // Pass payload as an array
+      .insert([payload])
       .select()
       .single();
 
@@ -142,7 +157,6 @@ export default function BuilderPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
-    setSavedStrategies([]);
   };
 
   return (
