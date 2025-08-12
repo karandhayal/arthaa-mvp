@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Arthaa - Build, Test, and Automate Trading Strategies",
   description: "A no-code platform for creating, backtesting, and deploying automated trading strategies for the Indian stock market.",
-};
+
 icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
-  }
+  }};
 export default function RootLayout({
   children,
 }: Readonly<{
