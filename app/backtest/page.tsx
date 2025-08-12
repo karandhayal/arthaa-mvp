@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 import Header from '../components/Header';
 import BacktestControls, { type PortfolioBacktestConfig } from '../components/BacktestControls';
 import BacktestResults, { type BacktestResult, type Trade } from '../components/BacktestResults';
@@ -9,28 +10,6 @@ import { enrichCandlesWithIndicators, type Candle } from '../../lib/indicatorMan
 import { runBacktest } from '../../lib/backtestEngine';
 import { type StrategyFromDB } from '../components/SavedStrategies';
 import LoginModal from '../components/LoginModal';
-
-// --- NEW INTERFACES FOR TYPE SAFETY ---
-// Describes the structure of a single day's data from Alpha Vantage
-interface AlphaVantageDailyData {
-  '1. open': string;
-  '2. high': string;
-  '3. low': string;
-  '4. close': string;
-  '5. volume': string;
-}
-
-// Describes the time series object, where keys are dates
-interface AlphaVantageTimeSeries {
-  [date: string]: AlphaVantageDailyData;
-}
-
-// Describes the overall API response from Alpha Vantage
-interface AlphaVantageResponse {
-  [key: string]: AlphaVantageTimeSeries | string; // Can be the data or an error message like 'Note'
-}
-// --- END OF NEW INTERFACES ---
-
 
 export default function BacktestPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -40,7 +19,7 @@ export default function BacktestPage() {
   const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]);
   const [brokerConnected, setBrokerConnected] = useState(false);
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const ALPHA_VANTAGE_API_KEY = process.env.NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY;
 
   useEffect(() => {
@@ -78,30 +57,13 @@ export default function BacktestPage() {
       if (avInterval) url += `&interval=${avInterval}`;
       
       const response = await fetch(url);
-      // --- MODIFICATION START ---
-      // Apply the strong type to the JSON response
-      const rawData: AlphaVantageResponse = await response.json();
+      const rawData = await response.json();
       const dataKey = Object.keys(rawData).find(key => key.includes('Time Series'));
-      if (!dataKey || typeof rawData[dataKey] === 'string') {
-        throw new Error((rawData['Note'] as string) || 'Failed to fetch data from Alpha Vantage. The API key might be invalid or the usage limit reached.');
-      }
-      
-      const timeSeries = rawData[dataKey] as AlphaVantageTimeSeries;
+      if (!dataKey) throw new Error(rawData['Note'] || 'Failed to fetch data from Alpha Vantage.');
 
-      return Object.entries(timeSeries)
-        // The problematic type annotation `[string, Record<string, string>]` is no longer needed
-        // because `values` is now correctly inferred as `AlphaVantageDailyData`.
-        .map(([date, values]) => ({ 
-            date, 
-            open: parseFloat(values['1. open']), 
-            high: parseFloat(values['2. high']), 
-            low: parseFloat(values['3. low']), 
-            close: parseFloat(values['4. close']), 
-            volume: parseInt(values['5. volume'], 10) // Added radix 10 to parseInt
-        }))
-        .filter(c => new Date(c.date) >= new Date(startDate) && new Date(c.date) <= new Date(endDate))
-        .reverse(); // Add .reverse() to sort data from oldest to newest
-      // --- MODIFICATION END ---
+      return Object.entries(rawData[dataKey])
+        .map(([date, values]: [string, Record<string, string>]) => ({ date, open: parseFloat(values['1. open']), high: parseFloat(values['2. high']), low: parseFloat(values['3. low']), close: parseFloat(values['4. close']), volume: parseInt(values['5. volume']) }))
+        .filter(c => new Date(c.date) >= new Date(startDate) && new Date(c.date) <= new Date(endDate));
     }
   };
 
@@ -167,8 +129,8 @@ export default function BacktestPage() {
           <BacktestControls brokerConnected={brokerConnected} savedStrategies={savedStrategies} onRunBacktest={handleRunBacktest} />
         </section>
         <section className="w-full md:w-2/3 lg:w-3/4 bg-slate-800 rounded-xl p-4">
-          <h2 className="text-xl font-bold mb-4">Results</h2>
-          <BacktestResults result={backtestResult} loading={loading} />
+           <h2 className="text-xl font-bold mb-4">Results</h2>
+           <BacktestResults result={backtestResult} loading={loading} />
         </section>
       </main>
     </div>
