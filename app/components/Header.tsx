@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
-import type { Session } from '@supabase/supabase-js'; 
 import { useRouter } from 'next/navigation';
 import { FaUserCircle } from 'react-icons/fa';
 import { FiMenu, FiX } from 'react-icons/fi';
