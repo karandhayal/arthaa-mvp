@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiArrowRight, FiBarChart2, FiCpu, FiZap } from 'react-icons/fi';
-import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import { createBrowserClient } from '@supabase/ssr'
 import type { Session } from '@supabase/supabase-js'; 
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
@@ -31,7 +31,10 @@ const Logo = () => (
 export default function LandingPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const getSession = async () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/ssr'
+import { createBrowserClient } from '@supabase/ssr'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 
@@ -11,7 +11,10 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   // Disable background scroll when modal is open
   useEffect(() => {

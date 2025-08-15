@@ -1,11 +1,5 @@
-// In app/api/angelone/callback/route.ts
 
-// --- MODIFICATION START ---
-// Replaced 'createRouteHandlerClient' with the more direct 'createServerClient'
-// to bypass the build error.
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-// --- MODIFICATION END ---
-
+import { createRouteHandlerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -18,41 +12,12 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account?error=auth_failed', baseUrl));
   }
 
-  // --- MODIFICATION START: Manually Constructing the Supabase Client ---
+  // --- Using the correct, simpler Supabase client for Route Handlers ---
   const cookieStore = cookies();
-
-  const supabase = createServerClient(
-    // These environment variables are required for the manual setup.
-    // Ensure they are correctly set in your Vercel project.
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  );
-  // --- MODIFICATION END ---
+  const supabase = createRouteHandlerClient({
+    cookies: () => cookieStore,
+  });
+  // --- END ---
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
