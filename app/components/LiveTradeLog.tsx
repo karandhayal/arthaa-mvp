@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import { createClient } from '@/lib/supabase/client'; // IMPORT our new client helper
 import type { Session } from '@supabase/supabase-js';
 import { FiActivity, FiAlertTriangle } from 'react-icons/fi';
 
@@ -20,9 +20,11 @@ type LiveTradeLogProps = {
   session: Session | null;
 };
 
+// --- FIX: Initialize the Supabase client once, outside the component ---
+const supabase = createClient();
+
 export default function LiveTradeLog({ session }: LiveTradeLogProps) {
   const [logs, setLogs] = useState<TradeLog[]>([]);
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     if (!session) return;
@@ -52,7 +54,7 @@ export default function LiveTradeLog({ session }: LiveTradeLogProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session, supabase]);
+  }, [session]); // FIX: Removed 'supabase' from dependency array as it's now stable
 
   return (
     <div className="bg-slate-800 rounded-xl p-6 h-full flex flex-col">
