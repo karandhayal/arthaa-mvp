@@ -1,12 +1,13 @@
 // FILE: app/api/angelone/login/route.ts
-
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import { NextResponse } from 'next/server';
 // Note: We no longer need to import 'cookies' from 'next/headers'
 
 export async function GET() {
   // --- FIX: Use the new helper function to create the client ---
-  const supabase = createClient();
+  const cookieStore = cookies();
+const supabase = createClient(cookieStore);
   // --- END of FIX ---
 
   // 1. Get the current user's session

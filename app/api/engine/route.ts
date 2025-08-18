@@ -1,5 +1,5 @@
 // FILE: app/api/engine/route.ts
-
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
@@ -26,9 +26,8 @@ type Candle = {
 };
 
 export async function POST() {
-  // --- FIX: Use the new helper function to create the client ---
-  const supabase = createClient();
-  // --- END of FIX ---
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
   try {
     const { data: activeStrategies, error } = await supabase
