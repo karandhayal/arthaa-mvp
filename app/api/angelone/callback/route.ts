@@ -1,7 +1,7 @@
 // FILE: app/api/angelone/callback/route.ts
-// ACTION: Replace the entire file with this updated code.
+// ACTION: Replace the entire file with this final updated code.
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'; // UPDATED import
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -14,26 +14,28 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account?error=auth_failed', baseUrl));
   }
 
-  // --- UPDATED: Initializing the Supabase client correctly ---
-  const cookieStore = cookies();
+  // --- FINAL FIX: Initialize Supabase client by calling cookies() inside each method ---
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          // Call cookies() directly inside the method
+          return cookies().get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
+          // Call cookies() directly inside the method
+          cookies().set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          cookieStore.delete({ name, ...options });
+          // Call cookies() directly inside the method
+          cookies().delete({ name, ...options });
         },
       },
     }
   );
-  // --- END of UPDATE ---
+  // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -80,7 +82,6 @@ export async function GET(request: Request) {
       .eq('user_id', session.user.id);
 
     if (error) {
-      // Throw the database error to be caught by the catch block
       throw error;
     }
 
