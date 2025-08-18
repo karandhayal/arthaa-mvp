@@ -1,12 +1,14 @@
-// In app/api/angelone/route.ts
+// FILE: app/api/angelone/route.ts
 
-import { createRouteHandlerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { symbol, qty, side, exchange, productType } = await request.json();
-  const supabase = createRouteHandlerClient({ cookies });
+  const { symbol, qty, side, exchange, productType, symbolToken } = await request.json();
+  
+  // --- FIX: Use the new helper function to create the client ---
+  const supabase = createClient();
+  // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -15,21 +17,23 @@ export async function POST(request: Request) {
 
   const { data: config } = await supabase
     .from('broker_config')
-    .select('*')
+    .select('api_key, jwt_token') // Select only the keys you need
     .eq('user_id', session.user.id)
     .single();
 
-  if (!config) {
-    return NextResponse.json({ error: 'Angel One configuration not found.' }, { status: 400 });
+  // More robust check for required config values
+  if (!config || !config.api_key || !config.jwt_token) {
+    return NextResponse.json({ error: 'Angel One configuration not found or session is invalid.' }, { status: 400 });
   }
 
   try {
-    const jwtToken = "A_VALID_JWT_TOKEN"; 
+    // --- BUG FIX: Use the actual JWT token from the database ---
+    const jwtToken = config.jwt_token; 
 
     const orderPayload = {
         "variety": "NORMAL",
         "tradingsymbol": symbol,
-        "symboltoken": "3045",
+        "symboltoken": symbolToken, // Make sure to pass this from the frontend
         "transactiontype": side.toUpperCase(),
         "exchange": exchange,
         "ordertype": "MARKET",
@@ -52,7 +56,7 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
-    if (!result.status) {
+    if (!result.status || result.status === false) {
         throw new Error(result.message || 'Failed to place order.');
     }
 
@@ -60,6 +64,7 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    console.error("Error placing order:", errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
