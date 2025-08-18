@@ -61,9 +61,18 @@ export default function BacktestPage() {
       const dataKey = Object.keys(rawData).find(key => key.includes('Time Series'));
       if (!dataKey) throw new Error(rawData['Note'] || 'Failed to fetch data from Alpha Vantage.');
 
-      return Object.entries(rawData[dataKey])
-        .map(([date, values]: [string, Record<string, string>]) => ({ date, open: parseFloat(values['1. open']), high: parseFloat(values['2. high']), low: parseFloat(values['3. low']), close: parseFloat(values['4. close']), volume: parseInt(values['5. volume']) }))
+      // --- FIX: Add a type assertion to tell TypeScript the shape of the data ---
+      return (Object.entries(rawData[dataKey]) as [string, Record<string, string>][])
+        .map(([date, values]) => ({ 
+            date, 
+            open: parseFloat(values['1. open']), 
+            high: parseFloat(values['2. high']), 
+            low: parseFloat(values['3. low']), 
+            close: parseFloat(values['4. close']), 
+            volume: parseInt(values['5. volume']) 
+        }))
         .filter(c => new Date(c.date) >= new Date(startDate) && new Date(c.date) <= new Date(endDate));
+      // --- END of FIX ---
     }
   };
 
@@ -129,8 +138,8 @@ export default function BacktestPage() {
           <BacktestControls brokerConnected={brokerConnected} savedStrategies={savedStrategies} onRunBacktest={handleRunBacktest} />
         </section>
         <section className="w-full md:w-2/3 lg:w-3/4 bg-slate-800 rounded-xl p-4">
-           <h2 className="text-xl font-bold mb-4">Results</h2>
-           <BacktestResults result={backtestResult} loading={loading} />
+          <h2 className="text-xl font-bold mb-4">Results</h2>
+          <BacktestResults result={backtestResult} loading={loading} />
         </section>
       </main>
     </div>
