@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client'; // IMPORT our new client helper
+
+// --- FIX: Initialize the Supabase client once, outside the component ---
+const supabase = createClient();
+
 export default function BrokerConnectionForm() {
   const [apiKey, setApiKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
@@ -8,7 +13,6 @@ export default function BrokerConnectionForm() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
-  const supabase = createClientComponentClient();
 
   // Check if keys are already saved when the component loads
   useEffect(() => {
@@ -26,7 +30,7 @@ export default function BrokerConnectionForm() {
         }
     };
     checkKeys();
-  }, [supabase]);
+  }, []); // FIX: Removed 'supabase' from dependency array as it's now stable
 
 
   const handleSaveKeys = async () => {
@@ -35,6 +39,8 @@ export default function BrokerConnectionForm() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         setLoading(false);
+        // Optionally, prompt the user to log in
+        alert('You must be logged in to save keys.');
         return;
     };
 
@@ -75,7 +81,7 @@ export default function BrokerConnectionForm() {
         <label className="block text-sm font-medium mb-1">Angel One Secret Key</label>
         <input type="password" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className="w-full bg-slate-700 p-2 rounded-md" placeholder="Your SmartAPI Secret Key" />
       </div>
-       <div>
+        <div>
         <label className="block text-sm font-medium mb-1">Angel One Client ID</label>
         <input type="text" value={clientID} onChange={(e) => setClientID(e.target.value)} className="w-full bg-slate-700 p-2 rounded-md" placeholder="Your Angel One Client ID" />
       </div>
@@ -84,7 +90,6 @@ export default function BrokerConnectionForm() {
       </button>
       {message && <p className="text-sm text-center mt-2">{message}</p>}
 
-      {/* --- NEW: Login Button --- */}
       <div className="pt-4 border-t border-slate-700">
           <button 
             onClick={handleLogin}
