@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-// --- UPDATED IMPORTS ---
-import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client'; // IMPORT our new client helper
 import type { Session } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -30,6 +29,9 @@ const initialRuleGroup: RuleGroup = {
   rules: [],
 };
 
+// --- FIX: Initialize the Supabase client once, outside the component ---
+const supabase = createClient();
+
 export default function BuilderPage() {
   const [strategy, setStrategy] = useState<Strategy>({
     strategyName: '',
@@ -40,11 +42,24 @@ export default function BuilderPage() {
     trailingStopLoss: 0,
   });
 
-  // --- UPDATED STATE AND INITIALIZATION ---
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savedStrategies, setSavedStrategies] = useState<StrategyFromDB[]>([]);
-  const supabase = createClient();
+  
+  // --- FIX: fetchStrategies is now wrapped in useCallback for stability ---
+  const fetchStrategies = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching strategies:', error);
+    } else if (data) {
+      setSavedStrategies(data as StrategyFromDB[]);
+    }
+  }, []); // supabase is stable, so no dependency needed
 
   useEffect(() => {
     // Fetch the initial session
@@ -69,21 +84,7 @@ export default function BuilderPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
-
-  const fetchStrategies = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching strategies:', error);
-    } else if (data) {
-      setSavedStrategies(data as StrategyFromDB[]);
-    }
-  };
+  }, [fetchStrategies]); // FIX: Correct dependency array
 
   const handleUpdateField = (field: keyof Omit<Strategy, 'entryLogic' | 'exitLogic'>, value: string | number) => {
     setStrategy((prev) => ({ ...prev, [field]: value }));
