@@ -10,15 +10,15 @@ export function createClient() {
     {
       cookies: {
         get(name: string) {
-          // @ts-ignore - This is a workaround for a persistent type error
+          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // @ts-ignore - This is a workaround for a persistent type error
+          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
           cookieStore.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          // @ts-ignore - This is a workaround for a persistent type error
+          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
           cookieStore.delete({ name, ...options });
         },
       },
