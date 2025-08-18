@@ -1,9 +1,9 @@
 // FILE: app/api/angelone/callback/route.ts
-// ACTION: Replace the entire file with this final updated code.
+// ACTION: Replace the entire file with this code, which uses the new helper.
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server'; // IMPORT our new helper
 import { NextResponse } from 'next/server';
+// Note: We no longer need to import 'cookies' from 'next/headers' here
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -14,27 +14,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account?error=auth_failed', baseUrl));
   }
 
-  // --- FINAL FIX: Initialize Supabase client by calling cookies() inside each method ---
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          // Call cookies() directly inside the method
-          return cookies().get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // Call cookies() directly inside the method
-          cookies().set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          // Call cookies() directly inside the method
-          cookies().delete({ name, ...options });
-        },
-      },
-    }
-  );
+  // --- FINAL FIX: Use the new helper function to create the client ---
+  const supabase = createClient();
   // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();
