@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import type { Session } from '@supabase/supabase-js'; // <-- FIX: Import the Session type
+
 // Define the shape of the strategy data it receives
 type Strategy = {
   strategyName: string;
