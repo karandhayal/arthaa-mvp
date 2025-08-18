@@ -1,9 +1,9 @@
 // FILE: postcss.config.cjs
-// ACTION: Rename the file and use this exact code.
+// ACTION: Replace the entire file with this correct code.
 
 module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
+  plugins: [
+    'tailwindcss',
+    'autoprefixer',
+  ],
+};
