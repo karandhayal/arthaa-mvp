@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/ssr'; // <-- CHANGED
+import { createClient } from '@/lib/supabase/client'; // IMPORT our new client helper
 import type { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
@@ -18,6 +18,9 @@ type LiveStrategy = {
   strategies: StrategyFromDB; 
 };
 
+// --- FIX: Initialize the Supabase client once, outside the component ---
+const supabase = createClient();
+
 export default function LivePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +30,6 @@ export default function LivePage() {
   const [liveStrategies, setLiveStrategies] = useState<LiveStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [brokerConfig, setBrokerConfig] = useState<Record<string, unknown> | null>(null);
-  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function LivePage() {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       getSessionAndData(currentSession);
     });
-  }, [supabase]);
+  }, []); // FIX: Removed 'supabase' from dependency array as it's now stable
 
   const openDeployModal = (strategy: StrategyFromDB) => {
     if (!brokerConfig) {
@@ -101,38 +103,38 @@ export default function LivePage() {
         <Header session={session} onLoginClick={() => setIsModalOpen(true)} />
         <main className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col gap-6">
-             {!session ? (
-                 <div className="text-center py-20 bg-slate-800/50 rounded-xl flex-grow flex flex-col justify-center"><FiLogIn className="mx-auto text-5xl text-slate-500 mb-4" /><h3 className="font-bold text-xl">Please Log In</h3><p className="text-slate-400 text-sm mt-2 mb-6">You need to be logged in to manage live strategies.</p><button onClick={() => setIsModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-2 rounded-lg self-center">Login / Sign Up</button></div>
-              ) : (
-                <>
-                  <div>
-                    <h2 className="text-2xl font-bold mb-4">Active Strategies</h2>
-                    {activeStrategies.length > 0 ? (
-                        <div className="space-y-4">
-                            {activeStrategies.map(ls => (
-                                <div key={ls.id} className="bg-slate-800 rounded-xl p-4 border-l-4 border-green-500">
-                                    <h3 className="font-bold text-lg">{ls.strategies.name}</h3>
-                                    <div className="flex flex-wrap gap-1 mt-2">{ls.allocation_config.stocks.map(s => <span key={s.symbol} className="text-xs bg-slate-700 px-2 py-1 rounded">{s.symbol}</span>)}</div>
-                                    <button onClick={() => handleStopStrategy(ls.id)} className="w-full mt-4 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg"><FiStopCircle /> Stop</button>
-                                </div>
-                            ))}
-                        </div>
-                    ) : <p className="text-slate-400 text-sm p-4 bg-slate-800/50 rounded-lg">No strategies are currently active.</p>}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold mb-4">Available to Deploy</h2>
-                    {availableStrategies.length > 0 ? (
-                        <div className="space-y-4">
-                            {availableStrategies.map(s => (
-                                <div key={s.id} className="bg-slate-800 rounded-xl p-4">
-                                    <h3 className="font-bold text-lg">{s.name}</h3>
-                                    <button onClick={() => openDeployModal(s)} className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg"><FiPlayCircle /> Deploy</button>
-                                </div>
-                            ))}
-                        </div>
-                    ) : <p className="text-slate-400 text-sm p-4 bg-slate-800/50 rounded-lg">All your saved strategies are active.</p>}
-                  </div>
-                </>
+              {!session ? (
+                  <div className="text-center py-20 bg-slate-800/50 rounded-xl flex-grow flex flex-col justify-center"><FiLogIn className="mx-auto text-5xl text-slate-500 mb-4" /><h3 className="font-bold text-xl">Please Log In</h3><p className="text-slate-400 text-sm mt-2 mb-6">You need to be logged in to manage live strategies.</p><button onClick={() => setIsModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-2 rounded-lg self-center">Login / Sign Up</button></div>
+               ) : (
+                  <>
+                    <div>
+                      <h2 className="text-2xl font-bold mb-4">Active Strategies</h2>
+                      {activeStrategies.length > 0 ? (
+                          <div className="space-y-4">
+                              {activeStrategies.map(ls => (
+                                  <div key={ls.id} className="bg-slate-800 rounded-xl p-4 border-l-4 border-green-500">
+                                      <h3 className="font-bold text-lg">{ls.strategies.name}</h3>
+                                      <div className="flex flex-wrap gap-1 mt-2">{ls.allocation_config.stocks.map(s => <span key={s.symbol} className="text-xs bg-slate-700 px-2 py-1 rounded">{s.symbol}</span>)}</div>
+                                      <button onClick={() => handleStopStrategy(ls.id)} className="w-full mt-4 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg"><FiStopCircle /> Stop</button>
+                                  </div>
+                              ))}
+                          </div>
+                      ) : <p className="text-slate-400 text-sm p-4 bg-slate-800/50 rounded-lg">No strategies are currently active.</p>}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold mb-4">Available to Deploy</h2>
+                      {availableStrategies.length > 0 ? (
+                          <div className="space-y-4">
+                              {availableStrategies.map(s => (
+                                  <div key={s.id} className="bg-slate-800 rounded-xl p-4">
+                                      <h3 className="font-bold text-lg">{s.name}</h3>
+                                      <button onClick={() => openDeployModal(s)} className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg"><FiPlayCircle /> Deploy</button>
+                                  </div>
+                              ))}
+                          </div>
+                      ) : <p className="text-slate-400 text-sm p-4 bg-slate-800/50 rounded-lg">All your saved strategies are active.</p>}
+                    </div>
+                  </>
               )}
           </div>
           <div className="w-full md:w-1/2 lg:w-3/5">
