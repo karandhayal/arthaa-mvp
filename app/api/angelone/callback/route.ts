@@ -1,5 +1,7 @@
+// FILE: app/api/angelone/callback/route.ts
+// ACTION: Replace the entire file with this updated code.
 
-import { createRouteHandlerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'; // UPDATED import
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -12,12 +14,26 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/account?error=auth_failed', baseUrl));
   }
 
-  // --- Using the correct, simpler Supabase client for Route Handlers ---
+  // --- UPDATED: Initializing the Supabase client correctly ---
   const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({
-    cookies: () => cookieStore,
-  });
-  // --- END ---
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.delete({ name, ...options });
+        },
+      },
+    }
+  );
+  // --- END of UPDATE ---
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
