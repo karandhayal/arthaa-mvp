@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Session } from '@supabase/supabase-js'; // <-- FIX: Import the Session type
 import { FaUserCircle } from 'react-icons/fa';
 import { FiMenu, FiX } from 'react-icons/fi';
 import Link from 'next/link';
