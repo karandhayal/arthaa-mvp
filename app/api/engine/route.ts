@@ -1,11 +1,13 @@
-import { createRouteHandlerClient } from '@supabase/ssr';
+// FILE: app/api/engine/route.ts
+
+import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { enrichCandlesWithIndicators } from '../../../lib/indicatorManager';
 import { type RuleGroup } from '../../../app/components/types';
 import { type StrategyFromDB } from '../../../app/components/SavedStrategies';
 
+// --- Type definitions remain the same ---
 type LiveStrategyPayload = {
   id: string;
   user_id: string;
@@ -14,7 +16,6 @@ type LiveStrategyPayload = {
   broker_config: { jwt_token: string }[];
 };
 
-// ✅ Added this
 type Candle = {
   date: string;
   open: number;
@@ -25,7 +26,9 @@ type Candle = {
 };
 
 export async function POST() {
-  const supabase = createRouteHandlerClient({ cookies });
+  // --- FIX: Use the new helper function to create the client ---
+  const supabase = createClient();
+  // --- END of FIX ---
 
   try {
     const { data: activeStrategies, error } = await supabase
@@ -51,6 +54,8 @@ export async function POST() {
   }
 }
 
+// --- The rest of the file remains unchanged ---
+
 async function processStrategy(strategy: LiveStrategyPayload, supabase: SupabaseClient) {
   const { user_id, strategies: strategyDetails, broker_config, allocation_config } = strategy;
 
@@ -70,7 +75,7 @@ async function processStrategy(strategy: LiveStrategyPayload, supabase: Supabase
     }
 
     for (const stock of allocation_config.stocks) {
-      const historicalData = await getHistoricalData();
+      const historicalData = await getHistoricalData(); // Using mock data for now
       const enrichedData = enrichCandlesWithIndicators(historicalData, { config: strategyDetails.config });
 
       const latestCandle = enrichedData[enrichedData.length - 1] as Candle;
@@ -79,7 +84,7 @@ async function processStrategy(strategy: LiveStrategyPayload, supabase: Supabase
       const entryResult = evaluateGroup(strategyDetails.config.entryLogic, latestCandle, prevCandle);
       const exitResult = evaluateGroup(strategyDetails.config.exitLogic, latestCandle, prevCandle);
 
-      const hasOpenPosition = false;
+      const hasOpenPosition = false; // Mocked for now
 
       if (!hasOpenPosition && entryResult.met) {
         const reason = entryResult.reasons.join(` ${strategyDetails.config.entryLogic.logic} `);
@@ -97,6 +102,7 @@ async function processStrategy(strategy: LiveStrategyPayload, supabase: Supabase
 }
 
 async function getHistoricalData(): Promise<Candle[]> {
+  // This is mock data. Replace with actual API call to your historical data endpoint.
   return [
     { date: '2023-01-01T10:00:00.000Z', open: 100, high: 102, low: 99, close: 101, volume: 1000 },
     { date: '2023-01-02T10:00:00.000Z', open: 101, high: 103, low: 100, close: 102, volume: 1200 },
@@ -104,6 +110,7 @@ async function getHistoricalData(): Promise<Candle[]> {
 }
 
 function evaluateGroup(group: RuleGroup, candle: Candle, prevCandle: Candle): { met: boolean; reasons: string[] } {
+  // This is mock logic. Replace with your actual rule evaluation logic.
   if (group.rules.length > 0 && candle.close > prevCandle.close) {
     return { met: true, reasons: ["Price increased"] };
   }
