@@ -1,6 +1,5 @@
 // FILE: app/api/angelone/callback/route.ts
 
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // IMPORT our new helper
 import { NextResponse } from 'next/server';
 // Note: We no longer need to import 'cookies' from 'next/headers' here
@@ -15,8 +14,7 @@ export async function GET(request: Request) {
   }
 
   // --- FINAL FIX: Use the new helper function to create the client ---
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = createClient();
   // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();

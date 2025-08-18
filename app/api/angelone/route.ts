@@ -1,5 +1,4 @@
 // FILE: app/api/angelone/route.ts
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import { NextResponse } from 'next/server';
 
@@ -7,8 +6,7 @@ export async function POST(request: Request) {
   const { symbol, qty, side, exchange, productType, symbolToken } = await request.json();
   
   // --- FIX: Use the new helper function to create the client ---
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = createClient();
   // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();

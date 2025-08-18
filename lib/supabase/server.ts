@@ -1,8 +1,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// The function now accepts the cookie store as an argument with an explicit type
-export function createClient(cookieStore: ReturnType<typeof cookies>) {
+export function createClient() {
+  // --- FIX: Use a Type Assertion to force the correct type ---
+  const cookieStore = cookies() as ReturnType<typeof cookies>;
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
