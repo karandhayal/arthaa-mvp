@@ -1,8 +1,8 @@
-// In app/api/angelone/historical/route.ts
+// FILE: app/api/angelone/historical/route.ts
 
-import { createRouteHandlerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import { NextResponse } from 'next/server';
+// Note: We no longer need to import 'cookies' from 'next/headers'
 
 const SYMBOL_TOKEN_MAP: { [key: string]: string } = {
     'RELIANCE.BSE': '1330',
@@ -13,7 +13,10 @@ const SYMBOL_TOKEN_MAP: { [key: string]: string } = {
 
 export async function POST(request: Request) {
   const { symbol, timeframe, startDate, endDate } = await request.json();
-  const supabase = createRouteHandlerClient({ cookies });
+  
+  // --- FIX: Use the new helper function to create the client ---
+  const supabase = createClient();
+  // --- END of FIX ---
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
     .eq('user_id', session.user.id)
     .single();
 
-  if (!config || !config.jwt_token) {
+  if (!config || !config.api_key || !config.jwt_token) {
     return NextResponse.json({ error: 'Angel One connection not found or session expired.' }, { status: 400 });
   }
 
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
     });
 
     const result = await response.json();
-    if (!result.status || !result.data) {
+    if (!result.status || result.status === false || !result.data) {
         throw new Error(result.message || 'Failed to fetch historical data from Angel One.');
     }
 
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    console.error("Error fetching historical data:", errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
