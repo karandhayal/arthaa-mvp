@@ -1,7 +1,6 @@
 // In app/api/angelone/option-chain/route.ts
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server'; // Correct Supabase client for server-side routes
 import { NextResponse } from 'next/server';
 
 // This is a placeholder for fetching live option chain data from Angel One.
@@ -40,7 +39,9 @@ async function fetchMockOptionChain(symbol: string) {
 
 export async function POST(request: Request) {
   const { symbol } = await request.json();
-  const supabase = createRouteHandlerClient({ cookies });
+  // --- THIS IS THE FIX ---
+  // Use the new, correct Supabase server client
+  const supabase = createClient();
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
