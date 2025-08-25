@@ -1,3 +1,5 @@
+// FILE: lib/supabase/server.ts
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -10,16 +12,22 @@ export function createClient() {
     {
       cookies: {
         get(name: string) {
-          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
-          cookieStore.set({ name, value, ...options });
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // This can happen in read-only contexts, safe to ignore.
+          }
         },
+        // THIS IS THE CRUCIAL FIX: It allows signOut to work.
         remove(name: string, options: CookieOptions) {
-          // @ts-expect-error - This is a workaround for a persistent TypeScript bug
-          cookieStore.delete({ name, ...options });
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // This can happen in read-only contexts, safe to ignore.
+          }
         },
       },
     }
