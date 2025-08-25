@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { type StrategyFromDB } from './SavedStrategies';
 import { FiX, FiPlus, FiDollarSign, FiActivity, FiZap, FiTrendingUp, FiLayers } from 'react-icons/fi';
 import OptionSelector from './OptionSelector'; // Import the new component
+// import { type Session } from 'next-auth'; // Uncomment if you plan to use session
 
 // This interface defines the shape of the advanced configuration
 export interface PortfolioBacktestConfig {
@@ -22,13 +23,18 @@ export interface PortfolioBacktestConfig {
 }
 
 type BacktestControlsProps = {
-  session: any; // Session | null
+  // If you don’t use session, remove it completely
+  // session?: Session | null;
   brokerConnected: boolean;
   savedStrategies: StrategyFromDB[];
   onRunBacktest: (config: PortfolioBacktestConfig, useDeepTest: boolean) => void;
 };
 
-export default function BacktestControls({ session, brokerConnected, savedStrategies, onRunBacktest }: BacktestControlsProps) {
+export default function BacktestControls({
+  brokerConnected,
+  savedStrategies,
+  onRunBacktest,
+}: BacktestControlsProps) {
   const [instrumentType, setInstrumentType] = useState<'stock' | 'option'>('stock');
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyFromDB | null>(null);
   const [timeframe, setTimeframe] = useState('ONE_DAY'); 
