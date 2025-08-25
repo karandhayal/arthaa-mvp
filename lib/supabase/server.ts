@@ -3,8 +3,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export function createClient() {
-  const cookieStore = cookies();
+// NOTE: This function is now async
+export async function createClient() {
+  // We are now correctly awaiting the cookies() function
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +23,6 @@ export function createClient() {
             // This can happen in read-only contexts, safe to ignore.
           }
         },
-        // THIS IS THE CRUCIAL FIX: It allows signOut to work.
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
