@@ -39,9 +39,9 @@ async function fetchMockOptionChain(symbol: string) {
 
 export async function POST(request: Request) {
   const { symbol } = await request.json();
-  // --- THIS IS THE FIX ---
-  // Use the new, correct Supabase server client
-  const supabase = createClient();
+  
+  // Use the new, correct async Supabase server client
+  const supabase = await createClient();
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   // Use the self-contained helper to create a Supabase client
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Ensure there is an active user session
   const { data: { session } } = await supabase.auth.getSession();
