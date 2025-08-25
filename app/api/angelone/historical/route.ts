@@ -1,7 +1,6 @@
 // FILE: app/api/angelone/historical/route.ts
 import { createClient } from '@/lib/supabase/server'; // IMPORT our helper
 import { NextResponse } from 'next/server';
-// Note: We no longer need to import 'cookies' from 'next/headers'
 
 const SYMBOL_TOKEN_MAP: { [key: string]: string } = {
     'RELIANCE.BSE': '1330',
@@ -13,9 +12,8 @@ const SYMBOL_TOKEN_MAP: { [key: string]: string } = {
 export async function POST(request: Request) {
   const { symbol, timeframe, startDate, endDate } = await request.json();
   
-  // --- FIX: Use the new helper function to create the client ---
-  const supabase = createClient();
-  // --- END of FIX ---
+  // Use the new, correct async Supabase server client
+  const supabase = await createClient();
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
