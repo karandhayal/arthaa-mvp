@@ -46,8 +46,12 @@ export default function OptionSelector({ onSelectContract }: OptionSelectorProps
       setOptionChain(data);
 
       // Extract unique expiry dates
-      const uniqueExpiries = Array.from(new Set(data.map((row: OptionChainRow) => row.expiryDate)));
-      setExpiryDates(uniqueExpiries);
+      const uniqueExpiries: string[] = Array.from(
+  new Set(data.map((row: OptionChainRow) => row.expiryDate))
+);
+
+setExpiryDates(uniqueExpiries);
+
       if (uniqueExpiries.length > 0) setSelectedExpiry(uniqueExpiries[0]);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
